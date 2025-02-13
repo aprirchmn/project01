@@ -29,6 +29,7 @@ const soalmultipleRoutes = require("./routes/soalmultiple.routes");
 const ujianRoutes = require("./routes/ujian.routes");
 const hasilujianRoutes = require("./routes/hasilujian.routes");
 const soalessayRoutes = require("./routes/soalessay.routes");
+const authRoutes = require("./routes/auth.routes");
 
 app.use("/siswas", siswaRoutes);
 app.use("/gurus", guruRoutes);
@@ -40,6 +41,7 @@ app.use("/soalmultiples", soalmultipleRoutes);
 app.use("/ujians", ujianRoutes);
 app.use("/hasilujians", hasilujianRoutes);
 app.use("/soalessays", soalessayRoutes);
+app.use("/auth", authRoutes);
 
 app.listen(PORT, () => {
   console.log("Express API running in port: " + PORT);

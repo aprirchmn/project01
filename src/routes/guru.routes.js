@@ -1,13 +1,14 @@
 const express = require("express");
 const guruController = require("../controllers/guru.controller");
+const { verifyToken, guruOnly } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-router.get("/", guruController.getAll);
-router.get("/:id", guruController.getById);
-router.post("/", guruController.create);
-router.put("/:id", guruController.update);
-router.delete("/:id", guruController.delete);
-router.patch("/:id", guruController.patch);
+router.get("/", verifyToken, guruOnly, guruController.getAll);
+router.get("/:id", verifyToken, guruOnly, guruController.getById);
+router.post("/", verifyToken, guruOnly, guruController.create);
+router.put("/:id", verifyToken, guruOnly, guruController.update);
+router.delete("/:id", verifyToken, guruOnly, guruController.delete);
+router.patch("/:id", verifyToken, guruOnly, guruController.patch);
 
 module.exports = router;
