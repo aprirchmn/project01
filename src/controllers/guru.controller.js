@@ -1,87 +1,83 @@
-// Layer untuk handle request dan respone serta
-// handle validasi body
-const express = require("express");
-const prisma = require("../db");
-// const { verifyToken, authorizeRole } = require("../auth/auth.middleware");
-
 const { getAllGurus, getGuruById, createGuru, deleteGuruById, editGuruById } = require("../services/guru.service");
 
-const router = express.Router();
+const guruController = {
+  getAll: async (req, res) => {
+    try {
+      const gurus = await getAllGurus();
+      res.json(gurus);
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  },
 
-router.get("/", async (req, res) => {
-  const gurus = await getAllGurus(); //menampilkan semua data Guru
+  getById: async (req, res) => {
+    try {
+      const guruId = parseInt(req.params.id);
+      const guru = await getGuruById(guruId);
+      if (!guru) {
+        return res.status(404).json({ message: "Guru tidak ditemukan" });
+      }
+      res.json(guru);
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-  res.send(gurus);
-});
+  create: async (req, res) => {
+    try {
+      const newGuruData = req.body;
+      const guru = await createGuru(newGuruData);
+      res.status(201).json({
+        data: guru,
+        message: "Berhasil menambahkan Guru",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-router.get("/:id", async (req, res) => {
-  try {
-    const guruId = parseInt(req.params.id);
-    const guru = await getGuruById(parseInt(guruId));
+  update: async (req, res) => {
+    try {
+      const guruId = parseInt(req.params.id);
+      const guruData = req.body;
 
-    res.send(guru);
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+      if (!(guruData.nama_guru && guruData.nip && guruData.password)) {
+        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+      }
 
-router.post("/", async (req, res) => {
-  try {
-    const newGuruData = req.body;
+      const guru = await editGuruById(guruId, guruData);
+      res.json({
+        data: guru,
+        message: "Berhasil mengubah data Guru",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    const guru = await createGuru(newGuruData);
+  delete: async (req, res) => {
+    try {
+      const guruId = parseInt(req.params.id);
+      await deleteGuruById(guruId);
+      res.status(200).json({ message: "Akun Guru berhasil dihapus" });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    res.send({
-      data: guru,
-      message: "Berhasil menambahkan Guru",
-    });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+  patch: async (req, res) => {
+    try {
+      const guruId = parseInt(req.params.id);
+      const guruData = req.body;
+      const guru = await editGuruById(guruId, guruData);
+      res.json({
+        data: guru,
+        message: "Berhasil mengedit data Guru",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
+};
 
-router.delete("/:id", async (req, res) => {
-  try {
-    const guruId = req.params.id;
-
-    await deleteGuruById(parseInt(guruId));
-
-    res.send("Akun Guru berhasil dihapus");
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
-});
-
-router.put("/:id", async (req, res) => {
-  const guruId = req.params.id;
-  const guruData = req.body;
-
-  if (!(guruData.nama_guru && guruData.nip && guruData.password)) {
-    return res.status(400).send("Tidak boleh ada data yang kosong");
-  }
-
-  const guru = await editGuruById(parseInt(guruId), guruData);
-
-  res.send({
-    data: guru,
-    message: "Berhasil mengubah data Guru",
-  });
-});
-
-router.patch("/:id", async (req, res) => {
-  try {
-    const guruId = req.params.id;
-    const guruData = req.body;
-
-    const guru = await editGuruById(parseInt(guruId), guruData);
-
-    res.send({
-      data: guru,
-      message: "Berhasil mengedit data Guru",
-    });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
-
-module.exports = router;
+module.exports = guruController;

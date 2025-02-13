@@ -1,10 +1,9 @@
 const express = require("express");
 const dotenv = require("dotenv");
 
-const app = express();
-
 dotenv.config();
 
+const app = express();
 const PORT = process.env.PORT;
 
 app.use(express.json()); //untuk bisa membaca body
@@ -19,41 +18,28 @@ app.get("/api", (req, res) => {
 
 // Logout
 
-const siswaController = require("./controllers/siswa.controller");
+// Import dan gunakan route yang benar (bukan controller langsung)
+const siswaRoutes = require("./routes/siswa.routes");
+const guruRoutes = require("./routes/guru.routes");
+const jawabanRoutes = require("./routes/jawaban.routes");
+const jenisujianRoutes = require("./routes/jenisujian.routes");
+const kelasRoutes = require("./routes/kelas.routes");
+const matapelajaranRoutes = require("./routes/matapelajaran.routes");
+const soalmultipleRoutes = require("./routes/soalmultiple.routes");
+const ujianRoutes = require("./routes/ujian.routes");
+const hasilujianRoutes = require("./routes/hasilujian.routes");
+const soalessayRoutes = require("./routes/soalessay.routes");
 
-app.use("/siswas", siswaController);
-
-const guruController = require("./controllers/guru.controller");
-
-app.use("/gurus", guruController);
-
-const kelasController = require("./controllers/kelas.controller");
-
-app.use("/kelass", kelasController);
-
-const jenisujianController = require("./controllers/jenisujian.controller");
-
-app.use("/jenisujians", jenisujianController);
-
-const matapelajaranController = require("./controllers/matapelajaran.controller");
-
-app.use("/matapelajarans", matapelajaranController);
-
-const soalmultipleController = require("./controllers/soalmultiple.controller");
-
-app.use("/soalmultiples", soalmultipleController);
-
-const ujianController = require("./controllers/ujian.controller");
-
-app.use("/ujians", ujianController);
-
-const jawabanController = require("./controllers/jawaban.controller");
-
-app.use("/jawabans", jawabanController);
-
-const hasilujianController = require("./controllers/hasilujian.controller");
-
-app.use("/hasilujians", hasilujianController);
+app.use("/siswas", siswaRoutes);
+app.use("/gurus", guruRoutes);
+app.use("/jawabans", jawabanRoutes);
+app.use("/jenisujians", jenisujianRoutes);
+app.use("/kelass", kelasRoutes);
+app.use("/matapelajarans", matapelajaranRoutes);
+app.use("/soalmultiples", soalmultipleRoutes);
+app.use("/ujians", ujianRoutes);
+app.use("/hasilujians", hasilujianRoutes);
+app.use("/soalessays", soalessayRoutes);
 
 app.listen(PORT, () => {
   console.log("Express API running in port: " + PORT);

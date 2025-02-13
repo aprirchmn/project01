@@ -13,7 +13,7 @@ const getJawabanById = async (id) => {
   const jawaban = await findJawabanById(id); //menampilkan semua data jawaban
 
   if (!jawaban) {
-    throw Error("Data Murid tidak ditemukan");
+    throw Error("Jawaban tidak ditemukan");
   }
 
   return jawaban;

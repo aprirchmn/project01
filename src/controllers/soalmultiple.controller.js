@@ -1,97 +1,101 @@
-// Layer untuk handle request dan respone serta
-// handle validasi body
-const express = require("express");
-const prisma = require("../db");
-
 const { getAllSoalmultiples, getSoalmultipleById, createSoalmultiple, deleteSoalmultipleById, editSoalmultipleById } = require("../services/soalmultiple.service");
 
-const router = express.Router();
+const soalmultipleController = {
+  getAll: async (req, res) => {
+    try {
+      const soalmultiples = await getAllSoalmultiples();
+      res.json(soalmultiples);
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  },
 
-router.get("/", async (req, res) => {
-  const soalmultiples = await getAllSoalmultiples(); //menampilkan semua data soalmultiple
+  getById: async (req, res) => {
+    try {
+      const soalmultipleId = parseInt(req.params.id);
+      const soalmultiple = await getSoalmultipleById(soalmultipleId);
 
-  res.send(soalmultiples);
-});
+      if (!soalmultiple) {
+        return res.status(404).json({ message: "Soal Multiple tidak ditemukan" });
+      }
 
-router.get("/:id", async (req, res) => {
-  try {
-    const soalmultipleId = parseInt(req.params.id);
-    const soalmultiple = await getSoalmultipleById(parseInt(soalmultipleId));
+      res.json(soalmultiple);
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    res.send(soalmultiple);
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+  create: async (req, res) => {
+    try {
+      const newSoalmultipleData = req.body;
+      const soalmultiple = await createSoalmultiple(newSoalmultipleData);
 
-router.post("/", async (req, res) => {
-  try {
-    const newSoalmultipleData = req.body;
+      res.status(201).json({
+        data: soalmultiple,
+        message: "Berhasil menambahkan Soal Multiple",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    const soalmultiple = await createSoalmultiple(newSoalmultipleData);
+  update: async (req, res) => {
+    try {
+      const soalmultipleId = parseInt(req.params.id);
+      const soalmultipleData = req.body;
 
-    res.send({
-      data: soalmultiple,
-      message: "Berhasil menambahkan Soal Multiple",
-    });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+      if (
+        !(
+          soalmultipleData.pertanyaan &&
+          soalmultipleData.pilihan_a &&
+          soalmultipleData.pilihan_b &&
+          soalmultipleData.pilihan_c &&
+          soalmultipleData.pilihan_d &&
+          soalmultipleData.pilihan_e &&
+          soalmultipleData.kunci_jawaban &&
+          soalmultipleData.bobot
+        )
+      ) {
+        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+      }
 
-router.delete("/:id", async (req, res) => {
-  try {
-    const soalmultipleId = req.params.id;
+      const soalmultiple = await editSoalmultipleById(soalmultipleId, soalmultipleData);
 
-    await deleteSoalmultipleById(parseInt(soalmultipleId));
+      res.json({
+        data: soalmultiple,
+        message: "Berhasil mengubah Soal Multiple",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    res.send("Soal multiple berhasil dihapus");
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
-});
+  patch: async (req, res) => {
+    try {
+      const soalmultipleId = parseInt(req.params.id);
+      const soalmultipleData = req.body;
 
-router.put("/:id", async (req, res) => {
-  const soalmultipleId = req.params.id;
-  const soalmultipleData = req.body;
+      const soalmultiple = await editSoalmultipleById(soalmultipleId, soalmultipleData);
 
-  if (
-    !(
-      soalmultipleData.pertanyaan &&
-      soalmultipleData.pilihan_a &&
-      soalmultipleData.pilihan_b &&
-      soalmultipleData.pilihan_c &&
-      soalmultipleData.pilihan_d &&
-      soalmultipleData.pilihan_e &&
-      soalmultipleData.kunci_jawaban &&
-      soalmultipleData.bobot
-    )
-  ) {
-    return res.status(400).send("Tidak boleh ada data yang kosong");
-  }
+      res.json({
+        data: soalmultiple,
+        message: "Berhasil mengedit Soal Multiple",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-  const soalmultiple = await editSoalmultipleById(parseInt(soalmultipleId), soalmultipleData);
+  delete: async (req, res) => {
+    try {
+      const soalmultipleId = parseInt(req.params.id);
+      await deleteSoalmultipleById(soalmultipleId);
 
-  res.send({
-    data: soalmultiple,
-    message: "Berhasil mengubah Soal multiple",
-  });
-});
+      res.status(200).json({ message: "Soal Multiple berhasil dihapus" });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
+};
 
-router.patch("/:id", async (req, res) => {
-  try {
-    const soalmultipleId = req.params.id;
-    const soalmultipleData = req.body;
-
-    const soalmultiple = await editSoalmultipleById(parseInt(soalmultipleId), soalmultipleData);
-
-    res.send({
-      data: soalmultiple,
-      message: "Berhasil mengedit Soal Multiple",
-    });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
-
-module.exports = router;
+module.exports = soalmultipleController;

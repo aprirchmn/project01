@@ -1,86 +1,90 @@
-// Layer untuk handle request dan respone serta
-// handle validasi body
-const express = require("express");
-const prisma = require("../db");
-
 const { getAllUjians, getUjianById, createUjian, deleteUjianById, editUjianById } = require("../services/ujian.service");
 
-const router = express.Router();
+const ujianController = {
+  getAll: async (req, res) => {
+    try {
+      const ujians = await getAllUjians();
+      res.json(ujians);
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  },
 
-router.get("/", async (req, res) => {
-  const ujians = await getAllUjians(); //menampilkan semua data Ujian
+  getById: async (req, res) => {
+    try {
+      const ujianId = parseInt(req.params.id);
+      const ujian = await getUjianById(ujianId);
 
-  res.send(ujians);
-});
+      if (!ujian) {
+        return res.status(404).json({ message: "Ujian tidak ditemukan" });
+      }
 
-router.get("/:id", async (req, res) => {
-  try {
-    const ujianId = parseInt(req.params.id);
-    const ujian = await getUjianById(parseInt(ujianId));
+      res.json(ujian);
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    res.send(ujian);
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+  create: async (req, res) => {
+    try {
+      const newUjianData = req.body;
+      const ujian = await createUjian(newUjianData);
 
-router.post("/", async (req, res) => {
-  try {
-    const newUjianData = req.body;
+      res.status(201).json({
+        data: ujian,
+        message: "Berhasil menambahkan Ujian",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    const ujian = await createUjian(newUjianData);
+  update: async (req, res) => {
+    try {
+      const ujianId = parseInt(req.params.id);
+      const ujianData = req.body;
 
-    res.send({
-      data: ujian,
-      message: "Berhasil menambahkan Ujian",
-    });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+      if (!(ujianData.nama_ujian && ujianData.deskripsi && ujianData.tanggal_mulai && ujianData.tanggal_selesai && ujianData.durasi && ujianData.id_kelas)) {
+        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+      }
 
-router.delete("/:id", async (req, res) => {
-  try {
-    const ujianId = req.params.id;
+      const ujian = await editUjianById(ujianId, ujianData);
 
-    await deleteUjianById(parseInt(ujianId));
+      res.json({
+        data: ujian,
+        message: "Berhasil mengubah Ujian",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    res.send("Ujian berhasil dihapus");
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
-});
+  patch: async (req, res) => {
+    try {
+      const ujianId = parseInt(req.params.id);
+      const ujianData = req.body;
 
-router.put("/:id", async (req, res) => {
-  const ujianId = req.params.id;
-  const ujianData = req.body;
+      const ujian = await editUjianById(ujianId, ujianData);
 
-  if (!(ujianData.id_mata_pelajaran && ujianData.id_guru && ujianData.id_kelas && ujianData.id_jenis_ujian && ujianData.tanggal_ujian && ujianData.durasi_ujian && ujianData.status_ujian && ujianData.id_siswa && ujianData.nama_ujian)) {
-    return res.status(400).send("Tidak boleh ada data yang kosong");
-  }
+      res.json({
+        data: ujian,
+        message: "Berhasil mengedit Ujian",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-  const ujian = await editUjianById(parseInt(ujianId), ujianData);
+  delete: async (req, res) => {
+    try {
+      const ujianId = parseInt(req.params.id);
+      await deleteUjianById(ujianId);
 
-  res.send({
-    data: ujian,
-    message: "Berhasil mengubah  Ujian",
-  });
-});
+      res.status(200).json({ message: "Ujian berhasil dihapus" });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
+};
 
-router.patch("/:id", async (req, res) => {
-  try {
-    const ujianId = req.params.id;
-    const ujianData = req.body;
-
-    const ujian = await editUjianById(parseInt(ujianId), ujianData);
-
-    res.send({
-      data: ujian,
-      message: "Berhasil mengedit Ujian",
-    });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
-
-module.exports = router;
+module.exports = ujianController;

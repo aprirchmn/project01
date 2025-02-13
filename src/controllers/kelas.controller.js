@@ -1,86 +1,83 @@
-// Layer untuk handle request dan respone serta
-// handle validasi body
-const express = require("express");
-const prisma = require("../db");
-
 const { getAllKelass, getKelasById, createKelas, deleteKelasById, editKelasById } = require("../services/kelas.service");
 
-const router = express.Router();
+const kelasController = {
+  getAll: async (req, res) => {
+    try {
+      const kelass = await getAllKelass();
+      res.json(kelass);
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  },
 
-router.get("/", async (req, res) => {
-  const kelass = await getAllKelass(); //menampilkan semua data kelas
+  getById: async (req, res) => {
+    try {
+      const kelasId = parseInt(req.params.id);
+      const kelas = await getKelasById(kelasId);
+      if (!kelas) {
+        return res.status(404).json({ message: "Kelas tidak ditemukan" });
+      }
+      res.json(kelas);
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-  res.send(kelass);
-});
+  create: async (req, res) => {
+    try {
+      const newKelasData = req.body;
+      const kelas = await createKelas(newKelasData);
+      res.status(201).json({
+        data: kelas,
+        message: "Berhasil menambahkan Kelas",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-router.get("/:id", async (req, res) => {
-  try {
-    const kelasId = parseInt(req.params.id);
-    const kelas = await getKelasById(parseInt(kelasId));
+  update: async (req, res) => {
+    try {
+      const kelasId = parseInt(req.params.id);
+      const kelasData = req.body;
 
-    res.send(kelas);
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+      if (!(kelasData.nama_kelas && kelasData.kode_kelas && kelasData.id_guru)) {
+        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+      }
 
-router.post("/", async (req, res) => {
-  try {
-    const newKelasData = req.body;
+      const kelas = await editKelasById(kelasId, kelasData);
+      res.json({
+        data: kelas,
+        message: "Berhasil mengubah data Kelas",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    const kelas = await createKelas(newKelasData);
+  delete: async (req, res) => {
+    try {
+      const kelasId = parseInt(req.params.id);
+      await deleteKelasById(kelasId);
+      res.status(200).json({ message: "Kelas berhasil dihapus" });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
 
-    res.send({
-      data: kelas,
-      message: "Berhasil menambahkan Kelas",
-    });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+  patch: async (req, res) => {
+    try {
+      const kelasId = parseInt(req.params.id);
+      const kelasData = req.body;
+      const kelas = await editKelasById(kelasId, kelasData);
+      res.json({
+        data: kelas,
+        message: "Berhasil mengedit data Kelas",
+      });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
+};
 
-router.delete("/:id", async (req, res) => {
-  try {
-    const kelasId = req.params.id;
-
-    await deleteKelasById(parseInt(kelasId));
-
-    res.send("Akun Kelas berhasil dihapus");
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
-});
-
-router.put("/:id", async (req, res) => {
-  const kelasId = req.params.id;
-  const kelasData = req.body;
-
-  if (!(kelasData.nama_kelas && kelasData.kode_kelas && kelasData.id_guru)) {
-    return res.status(400).send("Tidak boleh ada data yang kosong");
-  }
-
-  const kelas = await editKelasById(parseInt(kelasId), kelasData);
-
-  res.send({
-    data: kelas,
-    message: "Berhasil mengubah data kelas",
-  });
-});
-
-router.patch("/:id", async (req, res) => {
-  try {
-    const kelasId = req.params.id;
-    const kelasData = req.body;
-
-    const kelas = await editKelasById(parseInt(kelasId), kelasData);
-
-    res.send({
-      data: kelas,
-      message: "Berhasil mengedit data Kelas",
-    });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
-
-module.exports = router;
+module.exports = kelasController;

@@ -1,41 +1,68 @@
-// const express = require("express");
-// const { loginGuru, loginSiswa } = require("./auth.service");
-// const { verifyToken } = require("./auth.middleware");
-// const router = express.Router();
+const prisma = require("../prisma/client"); // Menggunakan Prisma
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
-// // Login Guru
-// router.post("/login/guru", async (req, res) => {
-//   try {
-//     const { nip, password } = req.body;
-//     const token = await loginGuru(nip, password);
+const authController = {
+  // 🔹 Login untuk Guru berdasarkan NIP
+  loginGuru: async (req, res) => {
+    try {
+      const { nip, password } = req.body;
+      const guru = await prisma.guru.findUnique({
+        where: { nip },
+      });
 
-//     res.send({ token, message: "Login Guru berhasil" });
-//   } catch (err) {
-//     res.status(400).send(err.message);
-//   }
-// });
+      if (!guru) return res.status(404).json({ message: "Guru tidak ditemukan" });
 
-// // Login Siswa
-// router.post("/login/siswa", async (req, res) => {
-//   try {
-//     const { nis, password } = req.body;
-//     const token = await loginSiswa(nis, password);
+      // Cek apakah password cocok (tanpa hashing)
+      if (guru.password !== password) {
+        return res.status(400).json({ message: "Password salah" });
+      }
 
-//     res.send({ token, message: "Login Siswa berhasil" });
-//   } catch (err) {
-//     res.status(400).send(err.message);
-//   }
-// });
+      // Buat JWT Token
+      const token = jwt.sign({ id: guru.id, nip: guru.nip, role: "guru" }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
-// // Logout endpoint
-// router.post("/logout", verifyToken, (req, res) => {
-//   try {
-//     const token = req.headers.authorization?.split(" ")[1];
-//     const result = logout(token);
-//     res.json(result);
-//   } catch (err) {
-//     res.status(400).send(err.message);
-//   }
-// });
+      res.status(200).json({
+        message: "Login berhasil",
+        token,
+        user: { id: guru.id, nip: guru.nip, role: "guru" },
+      });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
 
-// module.exports = router;
+  // 🔹 Login untuk Siswa berdasarkan NIS
+  loginSiswa: async (req, res) => {
+    try {
+      const { nis, password } = req.body;
+      const siswa = await prisma.siswa.findUnique({
+        where: { nis },
+      });
+
+      if (!siswa) return res.status(404).json({ message: "Siswa tidak ditemukan" });
+
+      // Cek apakah password cocok (tanpa hashing)
+      if (siswa.password !== password) {
+        return res.status(400).json({ message: "Password salah" });
+      }
+
+      // Buat JWT Token
+      const token = jwt.sign({ id: siswa.id, nis: siswa.nis, role: "siswa" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+      res.status(200).json({
+        message: "Login berhasil",
+        token,
+        user: { id: siswa.id, nis: siswa.nis, role: "siswa" },
+      });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  // 🔹 Logout (Hapus token dari frontend)
+  logout: async (req, res) => {
+    res.status(200).json({ message: "Logout berhasil" });
+  },
+};
+
+module.exports = authController;

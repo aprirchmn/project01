@@ -53,8 +53,8 @@ const editMatapelajaran = async (id, mata_pelajaranData) => {
       id_mata_pelajaran: parseInt(id),
     },
     data: {
-      nama_mata_pelajaran: mata_pelajaranData.nama_mata_pelajaran,
       id_guru: mata_pelajaranData.id_guru,
+      nama_mata_pelajaran: mata_pelajaranData.nama_mata_pelajaran,
     },
   });
 
