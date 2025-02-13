@@ -2,8 +2,9 @@
 // handle validasi body
 const express = require("express");
 const prisma = require("../db");
+// const { verifyToken, authorizeRole } = require("../auth/auth.middleware");
 
-const { getAllSiswas, getSiswaById, createSiswa, deleteSiswaById, editSiswaById } = require("./siswa.service");
+const { getAllSiswas, getSiswaById, createSiswa, deleteSiswaById, editSiswaById } = require("../services/siswa.service");
 
 const router = express.Router();
 
@@ -55,7 +56,7 @@ router.put("/:id", async (req, res) => {
   const siswaId = req.params.id;
   const siswaData = req.body;
 
-  if (!(siswaData.nama_siswa && siswaData.nis && siswaData.password)) {
+  if (!(siswaData.nama_siswa && siswaData.nis && siswaData.password && siswaData.id_kelas)) {
     return res.status(400).send("Tidak boleh ada data yang kosong");
   }
 

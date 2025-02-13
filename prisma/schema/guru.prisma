@@ -1,0 +1,9 @@
+model guru {
+  id_guru        Int              @id @default(autoincrement())
+  nama_guru      String
+  nip            Int              @unique
+  password       String
+  kelas          kelas[]
+  mata_pelajaran mata_pelajaran[]
+  ujian          ujian[]
+}

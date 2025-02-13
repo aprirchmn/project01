@@ -11,7 +11,7 @@ const findSiswas = async () => {
 const findSiswaById = async (id) => {
   const siswa = await prisma.siswa.findUnique({
     where: {
-      id,
+      id_siswa: id,
     },
   });
 
@@ -34,6 +34,7 @@ const insertSiswa = async (siswaData) => {
       nama_siswa: siswaData.nama_siswa,
       nis: siswaData.nis,
       password: siswaData.password,
+      id_kelas: siswaData.id_kelas,
     },
   });
 
@@ -43,7 +44,7 @@ const insertSiswa = async (siswaData) => {
 const deleteSiswa = async (id) => {
   await prisma.siswa.delete({
     where: {
-      id, //mengubah string menjadi Int menggunakan parseInt
+      id_siswa: id, //mengubah string menjadi Int menggunakan parseInt
     },
   });
 };
@@ -51,12 +52,13 @@ const deleteSiswa = async (id) => {
 const editSiswa = async (id, siswaData) => {
   const siswa = await prisma.siswa.update({
     where: {
-      id: parseInt(id),
+      id_siswa: parseInt(id),
     },
     data: {
       nama_siswa: siswaData.nama_siswa,
       nis: siswaData.nis,
       password: siswaData.password,
+      id_kelas: siswaData.id_kelas,
     },
   });
 

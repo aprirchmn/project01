@@ -1,0 +1,12 @@
+model soal_essay {
+  id_soal_essay     Int            @id @default(autoincrement())
+  id_mata_pelajaran Int
+  id_jenis_ujian    Int
+  pertanyaan        String
+  jawaban_siswa     String
+  kunci_jawaban     String
+  bobot             Float
+  jawaban           jawaban[]
+  jenis_ujian       jenis_ujian    @relation(fields: [id_jenis_ujian], references: [id_jenis_ujian])
+  mata_pelajaran    mata_pelajaran @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
+}

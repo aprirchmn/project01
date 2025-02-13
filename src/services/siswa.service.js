@@ -1,7 +1,7 @@
 // untuk handle business logic
 
 const prisma = require("../db");
-const { findSiswas, findSiswaById, insertSiswa, deleteSiswa, editSiswa } = require("./siswa.repository");
+const { findSiswas, findSiswaById, insertSiswa, deleteSiswa, editSiswa } = require("../repository/siswa.repository");
 
 const getAllSiswas = async () => {
   const siswas = await findSiswas(); //menampilkan semua data siswa

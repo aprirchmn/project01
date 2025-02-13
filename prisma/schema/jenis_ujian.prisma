@@ -1,0 +1,7 @@
+model jenis_ujian {
+  id_jenis_ujian Int             @id @default(autoincrement())
+  jenis_ujian    String
+  soal_essay     soal_essay[]
+  soal_multiple  soal_multiple[]
+  ujian          ujian[]
+}

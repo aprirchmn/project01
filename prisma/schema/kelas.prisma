@@ -1,0 +1,9 @@
+model kelas {
+  id_kelas   Int     @id @default(autoincrement())
+  nama_kelas String
+  kode_kelas String
+  id_guru    Int
+  guru       guru    @relation(fields: [id_guru], references: [id_guru])
+  siswa      siswa[]
+  ujian      ujian[]
+}

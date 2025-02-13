@@ -1,0 +1,20 @@
+
+model ujian {
+  id_ujian          Int            @id @default(autoincrement())
+  id_mata_pelajaran Int
+  id_guru           Int
+  id_kelas          Int
+  id_jenis_ujian    Int
+  tanggal_ujian     DateTime
+  durasi_ujian      Int
+  status_ujian      String
+  id_siswa          Int
+  nama_ujian        String
+  hasil_ujian       hasil_ujian?
+  jawaban           jawaban[]
+  guru              guru           @relation(fields: [id_guru], references: [id_guru])
+  jenis_ujian       jenis_ujian    @relation(fields: [id_jenis_ujian], references: [id_jenis_ujian])
+  kelas             kelas          @relation(fields: [id_kelas], references: [id_kelas])
+  mata_pelajaran    mata_pelajaran @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
+  siswa             siswa          @relation(fields: [id_siswa], references: [id_siswa])
+}
