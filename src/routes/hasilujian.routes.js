@@ -1,13 +1,14 @@
 const express = require("express");
 const hasilujianController = require("../controllers/hasilujian.controller");
+const { verifyToken, guruOnly } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-router.get("/", hasilujianController.getAll);
-router.get("/:id", hasilujianController.getById);
-router.post("/", hasilujianController.create);
-router.put("/:id", hasilujianController.update);
-router.patch("/:id", hasilujianController.patch);
-router.delete("/:id", hasilujianController.delete);
+router.get("/", verifyToken, hasilujianController.getAll);
+router.get("/:id", verifyToken, guruOnly, hasilujianController.getById);
+router.post("/", verifyToken, hasilujianController.create);
+router.put("/:id", verifyToken, guruOnly, hasilujianController.update);
+router.patch("/:id", verifyToken, guruOnly, hasilujianController.patch);
+router.delete("/:id", verifyToken, guruOnly, hasilujianController.delete);
 
 module.exports = router;

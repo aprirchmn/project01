@@ -20,15 +20,33 @@ const getJawabanById = async (id) => {
 };
 
 const createJawaban = async (newJawabanData) => {
-  // const findJawaban = await findJawabanByNama(newJawabanData);
+  let skor = 0; // Default jika jawaban salah
+  let message = "Jawaban Salah"; // Default message
 
-  // if (findJawaban) {
-  //   throw new Error("Nama harus unik");
-  // }
+  if (newJawabanData.id_soal_multiple) {
+    // Ambil data soal multiple choice berdasarkan ID
+    const soal = await prisma.soal_multiple.findUnique({
+      where: { id_soal_multiple: newJawabanData.id_soal_multiple },
+    });
 
-  const jawaban = await insertJawaban(newJawabanData);
+    if (!soal) {
+      throw new Error("Soal tidak ditemukan");
+    }
 
-  return jawaban;
+    // Cek apakah jawaban_murid sama dengan kunci_jawaban
+    if (newJawabanData.jawaban_murid === soal.kunci_jawaban) {
+      skor = soal.bobot; // Tambahkan skor sesuai bobot
+      message = "Jawaban Benar"; // Jika jawaban benar, ubah message
+    }
+  }
+
+  // Simpan jawaban dengan skor yang telah diperhitungkan
+  const jawaban = await insertJawaban({
+    ...newJawabanData,
+    skor, // Menyimpan skor hasil perhitungan
+  });
+
+  return { ...jawaban, message }; // Tambahkan message ke dalam response
 };
 
 const deleteJawabanById = async (id) => {

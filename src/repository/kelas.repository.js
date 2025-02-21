@@ -18,6 +18,13 @@ const findKelasById = async (id) => {
   return kelas;
 };
 
+const findKelasByKode = async (kode_kelas) => {
+  return await prisma.kelas.findFirst({
+    where: { kode_kelas },
+    include: { siswa: true }, // Pastikan relasi siswa di-include jika diperlukan
+  });
+};
+
 // const findkelasByNama = async (nama_kelas) => {
 //   const kelas = await prisma.kelas.findFirst({
 //     where: {
@@ -63,11 +70,22 @@ const editKelas = async (id, kelasData) => {
   return kelas;
 };
 
+const addSiswaToKelas = async (id_kelas, id_siswa) => {
+  return await prisma.kelas.update({
+    where: { id_kelas },
+    data: {
+      siswa: { connect: { id_siswa } }, // ✅ Menghubungkan siswa ke kelas
+    },
+  });
+};
+
 module.exports = {
   findKelass,
   findKelasById,
   insertKelas,
   deleteKelas,
   editKelas,
+  addSiswaToKelas,
+  findKelasByKode,
   //   findKelasByNama,
 };

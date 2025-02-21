@@ -1,4 +1,4 @@
-const { getAllKelass, getKelasById, createKelas, deleteKelasById, editKelasById } = require("../services/kelas.service");
+const { getAllKelass, getKelasById, createKelas, deleteKelasById, editKelasById, joinKelasByKode } = require("../services/kelas.service");
 
 const kelasController = {
   getAll: async (req, res) => {
@@ -76,6 +76,20 @@ const kelasController = {
       });
     } catch (error) {
       res.status(400).send(error.message);
+    }
+  },
+
+  join: async (req, res) => {
+    try {
+      const { kode_kelas, id_siswa } = req.body;
+      if (!kode_kelas || !id_siswa) {
+        return res.status(400).json({ message: "Kode kelas dan ID siswa wajib diisi" });
+      }
+
+      const kelas = await joinKelasByKode(kode_kelas, id_siswa);
+      res.json({ data: kelas, message: "Berhasil bergabung ke kelas" });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
     }
   },
 };
