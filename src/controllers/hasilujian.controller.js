@@ -40,11 +40,10 @@ const hasilujianController = {
     try {
       const hasilujianId = parseInt(req.params.id);
       const hasilujianData = req.body;
-
-      if (!(hasilujianData.id_siswa && hasilujianData.id_ujian && hasilujianData.nilai)) {
+      // Validasi: Pastikan id_siswa dan id_ujian ada
+      if (!(hasilujianData.id_siswa && hasilujianData.id_ujian)) {
         return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
       }
-
       const hasilujian = await editHasilujianById(hasilujianId, hasilujianData);
       res.json({
         data: hasilujian,

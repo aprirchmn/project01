@@ -1,14 +1,15 @@
 const express = require("express");
 const siswaController = require("../controllers/siswa.controller");
-const { verifyToken, siswaOnly } = require("../middleware/auth.middleware");
+const { verifyToken, guruOnly } = require("../middleware/auth.middleware");
+const { guru } = require("../db");
 
 const router = express.Router();
 
-router.get("/", verifyToken, siswaOnly, siswaController.getAll);
-router.get("/:id", verifyToken, siswaOnly, siswaController.getById);
-router.post("/", verifyToken, siswaOnly, siswaController.create);
-router.put("/:id", verifyToken, siswaOnly, siswaController.update);
-router.patch("/:id", verifyToken, siswaOnly, siswaController.patch);
-router.delete("/:id", verifyToken, siswaOnly, siswaController.delete);
+router.get("/", verifyToken, siswaController.getAll);
+router.get("/:id", verifyToken, siswaController.getById);
+router.post("/", verifyToken, guruOnly, siswaController.create);
+router.put("/:id", verifyToken, guruOnly, siswaController.update);
+router.patch("/:id", verifyToken, guruOnly, siswaController.patch);
+router.delete("/:id", verifyToken, guruOnly, siswaController.delete);
 
 module.exports = router;

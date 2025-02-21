@@ -42,7 +42,7 @@ const soalessayController = {
       const soalessayData = req.body;
 
       // Validasi apakah semua field wajib diisi
-      if (!(soalessayData.id_mata_pelajaran && soalessayData.id_jenis_ujian && soalessayData.pertanyaan && soalessayData.jawaban_siswa && soalessayData.kunci_jawaban && soalessayData.bobot)) {
+      if (!(soalessayData.id_mata_pelajaran && soalessayData.id_jenis_ujian && soalessayData.pertanyaan && soalessayData.kunci_jawaban && soalessayData.bobot)) {
         return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
       }
 

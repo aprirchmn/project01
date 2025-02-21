@@ -38,6 +38,7 @@ const insertJawaban = async (jawabanData) => {
       id_siswa: jawabanData.id_siswa,
       jawaban_murid: jawabanData.jawaban_murid,
       skor: jawabanData.skor,
+      cosine: jawabanData.cosine || null,
     },
   });
 
@@ -65,6 +66,7 @@ const editJawaban = async (id, jawabanData) => {
       id_siswa: jawabanData.id_siswa,
       jawaban_murid: jawabanData.jawaban_murid,
       skor: jawabanData.skor,
+      cosine: jawabanData.cosine || null,
     },
   });
 

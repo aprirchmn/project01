@@ -4,7 +4,7 @@ model siswa {
   nis         Int          @unique
   password    String
   id_kelas    Int
-  hasil_ujian hasil_ujian?
+  hasil_ujian hasil_ujian[]
   jawaban     jawaban[]
   kelas       kelas        @relation(fields: [id_kelas], references: [id_kelas])
   ujian       ujian[]

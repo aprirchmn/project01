@@ -3,7 +3,7 @@
 const prisma = require("../db");
 
 const findGurus = async () => {
-  const gurus = await prisma.guru.findMany(); // pastikan 'guru' sesuai dengan nama model di schema
+  const gurus = await prisma.guru.findMany();
 
   return gurus;
 };

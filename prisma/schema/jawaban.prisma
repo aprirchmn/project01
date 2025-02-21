@@ -1,10 +1,10 @@
-
 model jawaban {
   id_jawaban       Int            @id @default(autoincrement())
   id_hasil_ujian   Int
   id_ujian         Int
   jawaban_murid    String
   skor             Float
+  cosine           Float?         // Field baru untuk menyimpan cosine similarity
   id_soal_essay    Int?
   id_soal_multiple Int?
   id_siswa         Int

@@ -3,7 +3,6 @@ model soal_essay {
   id_mata_pelajaran Int
   id_jenis_ujian    Int
   pertanyaan        String
-  jawaban_siswa     String
   kunci_jawaban     String
   bobot             Float
   jawaban           jawaban[]
