@@ -44,7 +44,20 @@ const ujianController = {
       const ujianId = parseInt(req.params.id);
       const ujianData = req.body;
 
-      if (!(ujianData.id_mata_pelajaran && ujianData.id_guru && ujianData.id_kelas && ujianData.id_jenis_ujian && ujianData.tanggal_ujian && ujianData.durasi_ujian && ujianData.status_ujian && ujianData.id_siswa && ujianData.nama_ujian)) {
+      if (
+        !(
+          ujianData.id_mata_pelajaran &&
+          ujianData.id_guru &&
+          ujianData.id_kelas &&
+          ujianData.id_jenis_ujian &&
+          ujianData.tanggal_ujian &&
+          ujianData.durasi_ujian &&
+          ujianData.deskripsi_ujian &&
+          ujianData.status_ujian &&
+          ujianData.id_siswa &&
+          ujianData.nama_ujian
+        )
+      ) {
         return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
       }
 

@@ -1,8 +1,19 @@
 const { PrismaClient } = require("@prisma/client");
 const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();
 
 const prisma = new PrismaClient();
+
+const generateAccessToken = (payload) => {
+  // Masa berlaku access token misalnya 10 menit
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "10m" });
+};
+
+const generateRefreshToken = () => {
+  // Menggunakan UUID sebagai refresh token
+  return uuidv4();
+};
 
 const authController = {
   // 🔹 Login Guru berdasarkan NIP
@@ -30,15 +41,25 @@ const authController = {
       // Cari guru berdasarkan NIP
       const guru = await prisma.guru.findUnique({ where: { nip: nipInt } });
       if (!guru) {
-        return res.status(401).json({ message: "Username atau password salah" });
+        return res.status(401).json({ message: "NIP atau password salah" });
       }
 
       // Buat token JWT
-      const token = jwt.sign({ id_guru: guru.id_guru, nip: guru.nip, role: "guru" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+      // const token = jwt.sign({ id_guru: guru.id_guru, nip: guru.nip, role: "guru" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+      const accessToken = generateAccessToken({ id_guru: guru.id_guru, nip: guru.nip, role: "guru" });
+      const refreshToken = generateRefreshToken();
+      await prisma.refreshToken.create({
+        data: {
+          token: refreshToken,
+          expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 hari
+          id_guru: guru.id_guru,
+        },
+      });
 
       res.status(200).json({
         message: "Login berhasil",
-        token,
+        accessToken,
+        refreshToken,
         user: { id_guru: guru.id_guru, nip: guru.nip, role: "guru" },
       });
     } catch (error) {
@@ -75,11 +96,21 @@ const authController = {
       }
 
       // Buat token JWT
-      const token = jwt.sign({ id_siswa: siswa.id_siswa, nis: siswa.nis, role: "siswa" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+      // const token = jwt.sign({ id_siswa: siswa.id_siswa, nis: siswa.nis, role: "siswa" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+      const accessToken = generateAccessToken({ id_siswa: siswa.id_siswa, nis: siswa.nis, role: "siswa" });
+      const refreshToken = generateRefreshToken();
+      await prisma.refreshToken.create({
+        data: {
+          token: refreshToken,
+          expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          id_siswa: siswa.id_siswa,
+        },
+      });
 
       res.status(200).json({
         message: "Login berhasil",
-        token,
+        accessToken,
+        refreshToken,
         user: { id_siswa: siswa.id_siswa, nis: siswa.nis, role: "siswa" },
       });
     } catch (error) {
@@ -116,13 +147,22 @@ const authController = {
   // 🔹 Logout (Menghapus token di frontend)
   logout: async (req, res) => {
     try {
-      // Hapus token dari frontend (handled di frontend)
-      res.status(200).json({
-        message: "Logout berhasil. Silakan kembali ke halaman login.",
-        logout: true, // Bisa digunakan frontend untuk redirect
+      const refreshToken = req.body.refreshToken;
+      if (!refreshToken) {
+        return res.status(400).json({ success: false, message: "Refresh token is required." });
+      }
+
+      // Hapus refresh token dari database
+      await prisma.refreshToken.deleteMany({
+        where: { token: refreshToken },
       });
-    } catch (error) {
-      res.status(500).json({ message: "Terjadi kesalahan saat logout" });
+
+      return res.status(200).json({
+        success: true,
+        message: "Logout successful.",
+      });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: err.message });
     }
   },
 

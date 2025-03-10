@@ -7,6 +7,7 @@ model ujian {
   id_jenis_ujian    Int
   tanggal_ujian     DateTime
   durasi_ujian      Int
+  deskripsi_ujian   String
   status_ujian      String
   id_siswa          Int
   nama_ujian        String

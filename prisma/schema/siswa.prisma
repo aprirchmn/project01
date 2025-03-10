@@ -3,9 +3,10 @@ model siswa {
   nama_siswa  String
   nis         Int          @unique
   password    String
-  id_kelas    Int
+  id_kelas    Int?
   hasil_ujian hasil_ujian[]
   jawaban     jawaban[]
-  kelas       kelas        @relation(fields: [id_kelas], references: [id_kelas])
+  kelas       kelas?        @relation(fields: [id_kelas], references: [id_kelas])
   ujian       ujian[]
+  refreshTokens  RefreshToken[] 
 }

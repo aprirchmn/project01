@@ -6,4 +6,5 @@ model guru {
   kelas          kelas[]
   mata_pelajaran mata_pelajaran[]
   ujian          ujian[]
+  refreshTokens  RefreshToken[] 
 }
