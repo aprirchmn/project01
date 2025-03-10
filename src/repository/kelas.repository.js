@@ -41,6 +41,7 @@ const insertKelas = async (kelasData) => {
       nama_kelas: kelasData.nama_kelas,
       kode_kelas: kelasData.kode_kelas,
       id_guru: kelasData.id_guru,
+      deskripsi_kelas: kelasData.deskripsi_kelas,
     },
   });
 
@@ -64,6 +65,7 @@ const editKelas = async (id, kelasData) => {
       nama_kelas: kelasData.nama_kelas,
       kode_kelas: kelasData.kode_kelas,
       id_guru: kelasData.id_guru,
+      deskripsi_kelas: kelasData.deskripsi_kelas,
     },
   });
 

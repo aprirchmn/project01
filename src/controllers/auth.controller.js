@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 const generateAccessToken = (payload) => {
   // Masa berlaku access token misalnya 10 menit
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "10m" });
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
 };
 
 const generateRefreshToken = () => {

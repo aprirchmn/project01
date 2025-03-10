@@ -29,7 +29,7 @@ const kelasController = {
       const kelas = await createKelas(newKelasData);
       res.status(201).json({
         data: kelas,
-        message: "Berhasil menambahkan Kelas",
+        message: "Selamat kamu berhasil menambahkan Kelas",
       });
     } catch (error) {
       res.status(400).send(error.message);

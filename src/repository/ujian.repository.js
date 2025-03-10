@@ -3,15 +3,22 @@
 const prisma = require("../db");
 
 const findUjians = async () => {
-  const ujians = await prisma.ujian.findMany();
+  const ujians = await prisma.ujian.findMany({
+    include: {
+      soal_essays: true,
+      soal_multiples: true,
+    },
+  });
 
   return ujians;
 };
 
 const findUjianById = async (id) => {
   const ujian = await prisma.ujian.findUnique({
-    where: {
-      id_ujian: id,
+    where: { id_ujian: id },
+    include: {
+      soal_essays: true,
+      soal_multiples: true,
     },
   });
 
@@ -47,6 +54,15 @@ const insertUjian = async (ujianData) => {
       //   mata_pelajaran: {
       //     connect: { id_mata_pelajaran: ujianData.mata_pelajaran }, // connect dengan id_mata_pelajaran
       //   },
+      tipe_ujian: ujianData.tipe_ujian,
+      acak_soal: ujianData.acak_soal,
+      tampilkan_nilai: ujianData.tampilkan_nilai,
+      tampilkan_jawaban: ujianData.tampilkan_jawaban,
+      accessCamera: ujianData.accessCamera,
+    },
+    include: {
+      soal_essays: true,
+      soal_multiples: true,
     },
   });
 
@@ -77,6 +93,15 @@ const editUjian = async (id, ujianData) => {
       status_ujian: ujianData.status_ujian,
       id_siswa: ujianData.id_siswa,
       nama_ujian: ujianData.nama_ujian,
+      tipe_ujian: ujianData.tipe_ujian,
+      acak_soal: ujianData.acak_soal,
+      tampilkan_nilai: ujianData.tampilkan_nilai,
+      tampilkan_jawaban: ujianData.tampilkan_jawaban,
+      accessCamera: ujianData.accessCamera,
+    },
+    include: {
+      soal_essays: true,
+      soal_multiples: true,
     },
   });
 

@@ -3,6 +3,7 @@ model kelas {
   nama_kelas String
   kode_kelas String
   id_guru    Int
+  deskripsi_kelas   String
   guru       guru    @relation(fields: [id_guru], references: [id_guru])
   siswa      siswa[]
   ujian      ujian[]

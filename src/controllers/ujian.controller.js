@@ -55,7 +55,12 @@ const ujianController = {
           ujianData.deskripsi_ujian &&
           ujianData.status_ujian &&
           ujianData.id_siswa &&
-          ujianData.nama_ujian
+          ujianData.nama_ujian &&
+          ujianData.tipe_ujian &&
+          ujianData.acak_soal !== undefined &&
+          ujianData.tampilkan_nilai !== undefined &&
+          ujianData.tampilkan_jawaban !== undefined &&
+          ujianData.accessCamera !== undefined
         )
       ) {
         return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });

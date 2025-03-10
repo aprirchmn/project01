@@ -2,6 +2,7 @@ model soal_multiple {
   id_soal_multiple  Int            @id @default(autoincrement())
   id_mata_pelajaran Int
   id_jenis_ujian    Int
+  id_ujian          Int?
   pertanyaan        String
   pilihan_a         String
   pilihan_b         String
@@ -11,6 +12,7 @@ model soal_multiple {
   kunci_jawaban     String
   bobot             Float
   jawaban           jawaban[]
+  ujian             ujian?         @relation(fields: [id_ujian], references: [id_ujian])
   jenis_ujian       jenis_ujian    @relation(fields: [id_jenis_ujian], references: [id_jenis_ujian])
   mata_pelajaran    mata_pelajaran @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
 }
