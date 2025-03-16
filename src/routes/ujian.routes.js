@@ -1,14 +1,17 @@
 const express = require("express");
 const ujianController = require("../controllers/ujian.controller");
-const { verifyToken, guruOnly } = require("../middleware/auth.middleware");
+const {
+  authenticateToken,
+  isGuruOrAdmin,
+} = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-router.get("/", verifyToken, ujianController.getAll);
-router.get("/:id", verifyToken, guruOnly, ujianController.getById);
-router.post("/", verifyToken, guruOnly, ujianController.create);
-router.put("/:id", verifyToken, guruOnly, ujianController.update);
-router.patch("/:id", verifyToken, guruOnly, ujianController.patch);
-router.delete("/:id", verifyToken, guruOnly, ujianController.delete);
+router.get("/", authenticateToken, ujianController.getAll);
+router.get("/:id", authenticateToken, isGuruOrAdmin, ujianController.getById);
+router.post("/", authenticateToken, isGuruOrAdmin, ujianController.create);
+router.put("/:id", authenticateToken, isGuruOrAdmin, ujianController.update);
+router.patch("/:id", authenticateToken, isGuruOrAdmin, ujianController.patch);
+router.delete("/:id", authenticateToken, isGuruOrAdmin, ujianController.delete);
 
 module.exports = router;

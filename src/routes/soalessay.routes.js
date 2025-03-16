@@ -1,14 +1,22 @@
 const express = require("express");
 const soalEssayController = require("../controllers/soalessay.controller");
-const { verifyToken, guruOnly } = require("../middleware/auth.middleware");
+const {
+  authenticateToken,
+  isGuruOrAdmin,
+} = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-router.get("/", verifyToken, soalEssayController.getAll);
-router.get("/:id", verifyToken, soalEssayController.getById);
-router.post("/", verifyToken, soalEssayController.create);
-router.put("/:id", verifyToken, soalEssayController.update);
-router.delete("/:id", verifyToken, guruOnly, soalEssayController.delete);
-router.patch("/:id", verifyToken, soalEssayController.patch);
+router.get("/", authenticateToken, soalEssayController.getAll);
+router.get("/:id", authenticateToken, soalEssayController.getById);
+router.post("/", authenticateToken, soalEssayController.create);
+router.put("/:id", authenticateToken, soalEssayController.update);
+router.delete(
+  "/:id",
+  authenticateToken,
+  isGuruOrAdmin,
+  soalEssayController.delete,
+);
+router.patch("/:id", authenticateToken, soalEssayController.patch);
 
 module.exports = router;

@@ -48,6 +48,13 @@ exports.login = async (req, res) => {
       },
     });
 
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
     res.json({
       token,
       refreshToken,
@@ -58,6 +65,25 @@ exports.login = async (req, res) => {
         profile: user.role === "GURU" ? user.guru : user.siswa,
       },
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (refreshToken) {
+      await prisma.refreshToken.deleteMany({
+        where: { token: refreshToken },
+      });
+    }
+
+    res.clearCookie("refreshToken");
+
+    res.status(200).json({ message: "Logout berhasil" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
