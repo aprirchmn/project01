@@ -48,13 +48,13 @@ const authController = {
       // const token = jwt.sign({ id_guru: guru.id_guru, nip: guru.nip, role: "guru" }, process.env.JWT_SECRET, { expiresIn: "1d" });
       const accessToken = generateAccessToken({ id_guru: guru.id_guru, nip: guru.nip, role: "guru" });
       const refreshToken = generateRefreshToken();
-      await prisma.refreshToken.create({
-        data: {
-          token: refreshToken,
-          expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 hari
-          id_guru: guru.id_guru,
-        },
-      });
+      // await prisma.refreshToken.create({
+      //   data: {
+      //     token: refreshToken,
+      //     expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 hari
+      //     id_guru: guru.id_guru,
+      //   },
+      // });
 
       res.status(200).json({
         message: "Login berhasil",

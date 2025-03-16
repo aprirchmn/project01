@@ -1,5 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv");
+const cors = require('cors');
 
 dotenv.config();
 
@@ -7,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT;
 
 app.use(express.json()); //untuk bisa membaca body
+app.use(cors())
 
 app.get("/api", (req, res) => {
   res.send("Project Aplikasi CBT berbasis AES");

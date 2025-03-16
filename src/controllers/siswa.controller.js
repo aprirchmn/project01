@@ -1,9 +1,9 @@
-const { getAllSiswas, getSiswaById, createSiswa, deleteSiswaById, editSiswaById } = require("../services/siswa.service");
+const prisma = require("../db");
 
 const siswaController = {
   getAll: async (req, res) => {
     try {
-      const siswas = await getAllSiswas();
+      const siswas = await prisma.siswa.findMany();
       res.json(siswas);
     } catch (error) {
       res.status(500).send(error.message);
@@ -13,7 +13,12 @@ const siswaController = {
   getById: async (req, res) => {
     try {
       const siswaId = parseInt(req.params.id);
-      const siswa = await getSiswaById(siswaId);
+      const siswa = await prisma.siswa.findUnique({
+        where: {
+          id_siswa: siswaId,
+        },
+      });
+
       if (!siswa) {
         return res.status(404).json({ message: "Siswa tidak ditemukan" });
       }
@@ -26,7 +31,15 @@ const siswaController = {
   create: async (req, res) => {
     try {
       const newSiswaData = req.body;
-      const siswa = await createSiswa(newSiswaData);
+      const siswa = await prisma.siswa.create({
+        data: {
+          nama_siswa: newSiswaData.nama_siswa,
+          nis: newSiswaData.nis,
+          password: newSiswaData.password,
+          id_kelas: newSiswaData.id_kelas,
+        },
+      });
+
       res.status(201).json({
         data: siswa,
         message: "Berhasil menambahkan Murid",
@@ -45,7 +58,29 @@ const siswaController = {
         return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
       }
 
-      const siswa = await editSiswaById(siswaId, siswaData);
+      // Check if siswa exists
+      const existingSiswa = await prisma.siswa.findUnique({
+        where: {
+          id_siswa: siswaId,
+        },
+      });
+
+      if (!existingSiswa) {
+        return res.status(404).json({ message: "Data Murid tidak ditemukan" });
+      }
+
+      const siswa = await prisma.siswa.update({
+        where: {
+          id_siswa: siswaId,
+        },
+        data: {
+          nama_siswa: siswaData.nama_siswa,
+          nis: siswaData.nis,
+          password: siswaData.password,
+          id_kelas: siswaData.id_kelas,
+        },
+      });
+
       res.json({
         data: siswa,
         message: "Berhasil mengubah data Murid",
@@ -58,7 +93,24 @@ const siswaController = {
   delete: async (req, res) => {
     try {
       const siswaId = parseInt(req.params.id);
-      await deleteSiswaById(siswaId);
+
+      // Check if siswa exists
+      const existingSiswa = await prisma.siswa.findUnique({
+        where: {
+          id_siswa: siswaId,
+        },
+      });
+
+      if (!existingSiswa) {
+        return res.status(404).json({ message: "Data Murid tidak ditemukan" });
+      }
+
+      await prisma.siswa.delete({
+        where: {
+          id_siswa: siswaId,
+        },
+      });
+
       res.status(200).json({ message: "Akun Murid berhasil dihapus" });
     } catch (error) {
       res.status(400).send(error.message);
@@ -69,7 +121,25 @@ const siswaController = {
     try {
       const siswaId = parseInt(req.params.id);
       const siswaData = req.body;
-      const siswa = await editSiswaById(siswaId, siswaData);
+
+      // Check if siswa exists
+      const existingSiswa = await prisma.siswa.findUnique({
+        where: {
+          id_siswa: siswaId,
+        },
+      });
+
+      if (!existingSiswa) {
+        return res.status(404).json({ message: "Data Murid tidak ditemukan" });
+      }
+
+      const siswa = await prisma.siswa.update({
+        where: {
+          id_siswa: siswaId,
+        },
+        data: siswaData,
+      });
+
       res.json({
         data: siswa,
         message: "Berhasil mengedit data Murid",

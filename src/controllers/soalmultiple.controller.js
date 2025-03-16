@@ -1,9 +1,9 @@
-const { getAllSoalmultiples, getSoalmultipleById, createSoalmultiple, deleteSoalmultipleById, editSoalmultipleById } = require("../services/soalmultiple.service");
+const prisma = require("../db");
 
 const soalmultipleController = {
   getAll: async (req, res) => {
     try {
-      const soalmultiples = await getAllSoalmultiples();
+      const soalmultiples = await prisma.soal_multiple.findMany();
       res.json(soalmultiples);
     } catch (error) {
       res.status(500).send(error.message);
@@ -13,10 +13,16 @@ const soalmultipleController = {
   getById: async (req, res) => {
     try {
       const soalmultipleId = parseInt(req.params.id);
-      const soalmultiple = await getSoalmultipleById(soalmultipleId);
+      const soalmultiple = await prisma.soal_multiple.findUnique({
+        where: {
+          id_soal_multiple: soalmultipleId,
+        },
+      });
 
       if (!soalmultiple) {
-        return res.status(404).json({ message: "Soal Multiple tidak ditemukan" });
+        return res
+          .status(404)
+          .json({ message: "Soal Multiple tidak ditemukan" });
       }
 
       res.json(soalmultiple);
@@ -28,7 +34,20 @@ const soalmultipleController = {
   create: async (req, res) => {
     try {
       const newSoalmultipleData = req.body;
-      const soalmultiple = await createSoalmultiple(newSoalmultipleData);
+      const soalmultiple = await prisma.soal_multiple.create({
+        data: {
+          id_mata_pelajaran: newSoalmultipleData.id_mata_pelajaran,
+          id_jenis_ujian: newSoalmultipleData.id_jenis_ujian,
+          pertanyaan: newSoalmultipleData.pertanyaan,
+          pilihan_a: newSoalmultipleData.pilihan_a,
+          pilihan_b: newSoalmultipleData.pilihan_b,
+          pilihan_c: newSoalmultipleData.pilihan_c,
+          pilihan_d: newSoalmultipleData.pilihan_d,
+          pilihan_e: newSoalmultipleData.pilihan_e,
+          kunci_jawaban: newSoalmultipleData.kunci_jawaban,
+          bobot: newSoalmultipleData.bobot,
+        },
+      });
 
       res.status(201).json({
         data: soalmultiple,
@@ -56,10 +75,40 @@ const soalmultipleController = {
           soalmultipleData.bobot
         )
       ) {
-        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+        return res
+          .status(400)
+          .json({ message: "Tidak boleh ada data yang kosong" });
       }
 
-      const soalmultiple = await editSoalmultipleById(soalmultipleId, soalmultipleData);
+      const existingSoalmultiple = await prisma.soal_multiple.findUnique({
+        where: {
+          id_soal_multiple: soalmultipleId,
+        },
+      });
+
+      if (!existingSoalmultiple) {
+        return res
+          .status(404)
+          .json({ message: "Soal Multiple tidak ditemukan" });
+      }
+
+      const soalmultiple = await prisma.soal_multiple.update({
+        where: {
+          id_soal_multiple: soalmultipleId,
+        },
+        data: {
+          id_mata_pelajaran: soalmultipleData.id_mata_pelajaran,
+          id_jenis_ujian: soalmultipleData.id_jenis_ujian,
+          pertanyaan: soalmultipleData.pertanyaan,
+          pilihan_a: soalmultipleData.pilihan_a,
+          pilihan_b: soalmultipleData.pilihan_b,
+          pilihan_c: soalmultipleData.pilihan_c,
+          pilihan_d: soalmultipleData.pilihan_d,
+          pilihan_e: soalmultipleData.pilihan_e,
+          kunci_jawaban: soalmultipleData.kunci_jawaban,
+          bobot: soalmultipleData.bobot,
+        },
+      });
 
       res.json({
         data: soalmultiple,
@@ -75,7 +124,24 @@ const soalmultipleController = {
       const soalmultipleId = parseInt(req.params.id);
       const soalmultipleData = req.body;
 
-      const soalmultiple = await editSoalmultipleById(soalmultipleId, soalmultipleData);
+      const existingSoalmultiple = await prisma.soal_multiple.findUnique({
+        where: {
+          id_soal_multiple: soalmultipleId,
+        },
+      });
+
+      if (!existingSoalmultiple) {
+        return res
+          .status(404)
+          .json({ message: "Soal Multiple tidak ditemukan" });
+      }
+
+      const soalmultiple = await prisma.soal_multiple.update({
+        where: {
+          id_soal_multiple: soalmultipleId,
+        },
+        data: soalmultipleData,
+      });
 
       res.json({
         data: soalmultiple,
@@ -89,7 +155,24 @@ const soalmultipleController = {
   delete: async (req, res) => {
     try {
       const soalmultipleId = parseInt(req.params.id);
-      await deleteSoalmultipleById(soalmultipleId);
+
+      const existingSoalmultiple = await prisma.soal_multiple.findUnique({
+        where: {
+          id_soal_multiple: soalmultipleId,
+        },
+      });
+
+      if (!existingSoalmultiple) {
+        return res
+          .status(404)
+          .json({ message: "Soal Multiple tidak ditemukan" });
+      }
+
+      await prisma.soal_multiple.delete({
+        where: {
+          id_soal_multiple: soalmultipleId,
+        },
+      });
 
       res.status(200).json({ message: "Soal Multiple berhasil dihapus" });
     } catch (error) {

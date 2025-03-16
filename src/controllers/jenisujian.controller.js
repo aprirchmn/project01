@@ -1,9 +1,9 @@
-const { getAllJenisujians, getJenisujianById, createJenisujian, deleteJenisujianById, editJenisujianById } = require("../services/jenisujian.service");
+const prisma = require("../db");
 
 const jenisujianController = {
   getAll: async (req, res) => {
     try {
-      const jenisujians = await getAllJenisujians();
+      const jenisujians = await prisma.jenis_ujian.findMany();
       res.json(jenisujians);
     } catch (error) {
       res.status(500).send(error.message);
@@ -13,7 +13,10 @@ const jenisujianController = {
   getById: async (req, res) => {
     try {
       const jenisujianId = parseInt(req.params.id);
-      const jenisujian = await getJenisujianById(jenisujianId);
+      const jenisujian = await prisma.jenis_ujian.findUnique({
+        where: { id_jenis_ujian: jenisujianId },
+      });
+
       if (!jenisujian) {
         return res.status(404).json({ message: "Jenis Ujian tidak ditemukan" });
       }
@@ -26,7 +29,12 @@ const jenisujianController = {
   create: async (req, res) => {
     try {
       const newJenisujianData = req.body;
-      const jenisujian = await createJenisujian(newJenisujianData);
+      const jenisujian = await prisma.jenis_ujian.create({
+        data: {
+          jenis_ujian: newJenisujianData.jenis_ujian,
+        },
+      });
+
       res.status(201).json({
         data: jenisujian,
         message: "Berhasil menambahkan Jenis Ujian",
@@ -45,7 +53,23 @@ const jenisujianController = {
         return res.status(400).send("Tidak boleh ada data yang kosong");
       }
 
-      const jenisujian = await editJenisujianById(jenisujianId, jenisujianData);
+      const existingJenisujian = await prisma.jenis_ujian.findUnique({
+        where: { id_jenis_ujian: jenisujianId },
+      });
+
+      if (!existingJenisujian) {
+        return res.status(404).json({ message: "Jenis Ujian tidak ditemukan" });
+      }
+
+      const jenisujian = await prisma.jenis_ujian.update({
+        where: {
+          id_jenis_ujian: jenisujianId,
+        },
+        data: {
+          jenis_ujian: jenisujianData.jenis_ujian,
+        },
+      });
+
       res.json({
         data: jenisujian,
         message: "Berhasil mengubah Jenis Ujian",
@@ -55,26 +79,54 @@ const jenisujianController = {
     }
   },
 
-  delete: async (req, res) => {
-    try {
-      const jenisujianId = parseInt(req.params.id);
-      await deleteJenisujianById(jenisujianId);
-      res.status(200).json({ message: "Jenis Ujian berhasil dihapus" });
-    } catch (error) {
-      res.status(400).send(error.message);
-    }
-  },
-
   patch: async (req, res) => {
     try {
       const jenisujianId = parseInt(req.params.id);
       const jenisujianData = req.body;
 
-      const jenisujian = await editJenisujianById(jenisujianId, jenisujianData);
+      const existingJenisujian = await prisma.jenis_ujian.findUnique({
+        where: { id_jenis_ujian: jenisujianId },
+      });
+
+      if (!existingJenisujian) {
+        return res.status(404).json({ message: "Jenis Ujian tidak ditemukan" });
+      }
+
+      const jenisujian = await prisma.jenis_ujian.update({
+        where: {
+          id_jenis_ujian: jenisujianId,
+        },
+        data: {
+          ...(jenisujianData.jenis_ujian && { jenis_ujian: jenisujianData.jenis_ujian }),
+        },
+      });
+
       res.json({
         data: jenisujian,
         message: "Berhasil mengedit Jenis Ujian",
       });
+    } catch (error) {
+      res.status(400).send(error.message);
+    }
+  },
+
+  delete: async (req, res) => {
+    try {
+      const jenisujianId = parseInt(req.params.id);
+
+      const existingJenisujian = await prisma.jenis_ujian.findUnique({
+        where: { id_jenis_ujian: jenisujianId },
+      });
+
+      if (!existingJenisujian) {
+        return res.status(404).json({ message: "Jenis Ujian tidak ditemukan" });
+      }
+
+      await prisma.jenis_ujian.delete({
+        where: { id_jenis_ujian: jenisujianId },
+      });
+
+      res.status(200).json({ message: "Jenis Ujian berhasil dihapus" });
     } catch (error) {
       res.status(400).send(error.message);
     }
