@@ -1,47 +1,43 @@
 const jwt = require("jsonwebtoken");
+const prisma = require("../db");
+
 require("dotenv").config();
 
-exports.verifyToken = (req, res, next) => {
-  req.headers.authorization = req.headers.authorization || req.get("Authorization");
+exports.authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Akses ditolak, token tidak ada" });
+  if (!token) {
+    return res.status(401).json({ message: "Authentication required" });
   }
 
-  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid or expired token" });
+    }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next(); // Tidak perlu return di sini
-  } catch (error) {
-    res.status(403).json({ message: "Token tidak valid" });
-  }
+    req.user = user;
+    next();
+  });
 };
 
-// 🔹 Middleware untuk Guru
-exports.guruOnly = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ message: "Anda harus login!" });
+exports.isSuperAdmin = (req, res, next) => {
+  if (req.user.role !== "SUPER_ADMIN") {
+    return res.status(403).json({ message: "Access denied" });
   }
-
-  if (req.user.role !== "guru") {
-    return res.status(403).json({ message: "Akses terlarang, hanya untuk guru!" });
-  }
-
   next();
 };
 
-// 🔹 Middleware untuk Siswa
-exports.siswaOnly = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ message: "Anda harus login!" });
+exports.isGuruOrAdmin = (req, res, next) => {
+  if (req.user.role !== "GURU" && req.user.role !== "SUPER_ADMIN") {
+    return res.status(403).json({ message: "Access denied" });
   }
+  next();
+};
 
-  if (req.user.role !== "siswa") {
-    return res.status(403).json({ message: "Akses terlarang, hanya untuk siswa!" });
+exports.isSiswaOrAdmin = (req, res, next) => {
+  if (req.user.role !== "SISWA" && req.user.role !== "SUPER_ADMIN") {
+    return res.status(403).json({ message: "Access denied" });
   }
-
   next();
 };

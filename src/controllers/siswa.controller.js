@@ -1,4 +1,5 @@
 const prisma = require("../db");
+const bcrypt = require("bcrypt");
 
 const siswaController = {
   getAll: async (req, res) => {
@@ -29,23 +30,51 @@ const siswaController = {
   },
 
   create: async (req, res) => {
+    const { username, password, nama_siswa, nis, id_kelas } = req.body;
+
     try {
-      const newSiswaData = req.body;
-      const siswa = await prisma.siswa.create({
-        data: {
-          nama_siswa: newSiswaData.nama_siswa,
-          nis: newSiswaData.nis,
-          password: newSiswaData.password,
-          id_kelas: newSiswaData.id_kelas,
-        },
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const result = await prisma.$transaction(async (prisma) => {
+        const user = await prisma.user.create({
+          data: {
+            username,
+            password: hashedPassword,
+            role: "SISWA",
+          },
+        });
+
+        const siswa = await prisma.siswa.create({
+          data: {
+            nama_siswa,
+            nis,
+            id_kelas,
+            user_id: user.id,
+          },
+        });
+
+        return { user, siswa };
       });
 
       res.status(201).json({
-        data: siswa,
-        message: "Berhasil menambahkan Murid",
+        message: "Siswa berhasil ditambahkan",
+        data: {
+          id_siswa: result.siswa.id_siswa,
+          nama_siswa: result.siswa.nama_siswa,
+          nis: result.siswa.nis,
+          id_kelas: result.siswa.id_kelas,
+          username: result.user.username,
+          role: result.user.role,
+        },
       });
     } catch (error) {
-      res.status(400).send(error.message);
+      console.error(error);
+      if (error.code === "P2002") {
+        return res
+          .status(400)
+          .json({ message: "Username atau NIS sudah digunakan" });
+      }
+      res.status(500).json({ message: "Server error" });
     }
   },
 
@@ -54,8 +83,17 @@ const siswaController = {
       const siswaId = parseInt(req.params.id);
       const siswaData = req.body;
 
-      if (!(siswaData.nama_siswa && siswaData.nis && siswaData.password && siswaData.id_kelas)) {
-        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+      if (
+        !(
+          siswaData.nama_siswa &&
+          siswaData.nis &&
+          siswaData.password &&
+          siswaData.id_kelas
+        )
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Tidak boleh ada data yang kosong" });
       }
 
       // Check if siswa exists

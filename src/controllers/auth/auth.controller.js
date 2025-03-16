@@ -1,0 +1,65 @@
+const prisma = require("../../db");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+
+exports.login = async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { username },
+      include: {
+        guru: true,
+        siswa: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Username atau password salah" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Username atau password salah" });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        role: user.role,
+        profileId:
+          user.role === "GURU" ? user.guru?.id_guru : user.siswa?.id_siswa,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" },
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user.id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        user_id: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    res.json({
+      token,
+      refreshToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        profile: user.role === "GURU" ? user.guru : user.siswa,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -1,9 +1,14 @@
 const prisma = require("../db");
+const bcrypt = require("bcrypt");
 
 const guruController = {
   getAll: async (req, res) => {
     try {
-      const gurus = await prisma.guru.findMany();
+      const gurus = await prisma.guru.findMany({
+        include: {
+          kelas: true,
+        },
+      });
       res.json(gurus);
     } catch (error) {
       res.status(500).send(error.message);
@@ -29,22 +34,56 @@ const guruController = {
   },
 
   create: async (req, res) => {
+    const { username, password, nama_guru, nip, id_kelas } = req.body;
+
     try {
-      const newGuruData = req.body;
-      const guru = await prisma.guru.create({
-        data: {
-          nama_guru: newGuruData.nama_guru,
-          nip: newGuruData.nip,
-          password: newGuruData.password,
-        },
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const result = await prisma.$transaction(async (prisma) => {
+        const user = await prisma.user.create({
+          data: {
+            username,
+            password: hashedPassword,
+            role: "GURU",
+          },
+        });
+
+        // const idKelas = await prisma.kelas.findUnique({
+        //   where: {
+        //     id_kelas: req.body.id_kelas,
+        //   },
+        // });
+
+        const guru = await prisma.guru.create({
+          data: {
+            nama_guru,
+            nip,
+            user_id: user.id,
+            username,
+          },
+        });
+
+        return { user, guru };
       });
 
       res.status(201).json({
-        data: guru,
-        message: "Berhasil menambahkan Guru",
+        message: "Guru berhasil ditambahkan",
+        data: {
+          id_guru: result.guru.id_guru,
+          nama_guru: result.guru.nama_guru,
+          nip: result.guru.nip,
+          username: result.user.username,
+          role: result.user.role,
+        },
       });
     } catch (error) {
-      res.status(400).send(error.message);
+      console.error(error);
+      if (error.code === "P2002") {
+        return res
+          .status(400)
+          .json({ message: "Username atau NIP sudah digunakan" });
+      }
+      res.status(500).json({ message: "Server error" });
     }
   },
 
@@ -54,7 +93,9 @@ const guruController = {
       const guruData = req.body;
 
       if (!(guruData.nama_guru && guruData.nip && guruData.password)) {
-        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+        return res
+          .status(400)
+          .json({ message: "Tidak boleh ada data yang kosong" });
       }
 
       const existingGuru = await prisma.guru.findUnique({

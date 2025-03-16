@@ -2,9 +2,10 @@ model guru {
   id_guru        Int              @id @default(autoincrement())
   nama_guru      String
   nip            Int              @unique
-  password       String
-  kelas          kelas[]
+  user_id        Int              @unique
+  user           User             @relation(fields: [user_id], references: [id])
+  username       String
   mata_pelajaran mata_pelajaran[]
   ujian          ujian[]
-  refreshTokens  RefreshToken[] 
+  kelas          kelas[]
 }
