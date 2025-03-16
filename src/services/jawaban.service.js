@@ -147,11 +147,13 @@ const createJawaban = async (newJawabanData) => {
     }
     const cleanedJawabanMurid = processText(newJawabanData.jawaban_murid);
     const cleanedKunciJawaban = processText(soalEssay.kunci_jawaban);
+
     cosine = parseFloat(calculateCosineSimilarity(cleanedJawabanMurid, cleanedKunciJawaban).toFixed(2));
     if (cosine >= 0.5) {
       skor = cosine * soalEssay.bobot;
       message = "Jawaban Benar";
     } else {
+      skor = cosine * soalEssay.bobot * 0.5;
       message = "Jawaban Salah";
     }
   }
