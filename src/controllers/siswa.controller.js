@@ -79,52 +79,62 @@ const siswaController = {
   },
 
   update: async (req, res) => {
+    const id_siswa = req.params.id;
+    const { nama_siswa, nis, id_kelas, username, password } = req.body;
+
     try {
-      const siswaId = parseInt(req.params.id);
-      const siswaData = req.body;
+      const result = await prisma.$transaction(async (prisma) => {
+        const siswa = await prisma.siswa.findUnique({
+          where: { id_siswa: parseInt(id_siswa) },
+        });
 
-      if (
-        !(
-          siswaData.nama_siswa &&
-          siswaData.nis &&
-          siswaData.password &&
-          siswaData.id_kelas
-        )
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Tidak boleh ada data yang kosong" });
-      }
+        if (!siswa) {
+          return res.status(404).json({ message: "Siswa tidak ditemukan" });
+        }
 
-      // Check if siswa exists
-      const existingSiswa = await prisma.siswa.findUnique({
-        where: {
-          id_siswa: siswaId,
-        },
+        const updatedSiswa = await prisma.siswa.update({
+          where: { id_siswa: parseInt(id_siswa) },
+          data: {
+            nama_siswa,
+            nis,
+            id_kelas,
+          },
+        });
+
+        const updateUserData = { username };
+
+        if (password) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          updateUserData.password = hashedPassword;
+        }
+
+        const updatedUser = await prisma.user.update({
+          where: { id: siswa.user_id },
+          data: updateUserData,
+        });
+
+        return { updatedSiswa, updatedUser };
       });
 
-      if (!existingSiswa) {
-        return res.status(404).json({ message: "Data Murid tidak ditemukan" });
-      }
-
-      const siswa = await prisma.siswa.update({
-        where: {
-          id_siswa: siswaId,
-        },
+      res.status(200).json({
+        message: "Data siswa berhasil diperbarui",
         data: {
-          nama_siswa: siswaData.nama_siswa,
-          nis: siswaData.nis,
-          password: siswaData.password,
-          id_kelas: siswaData.id_kelas,
+          id_siswa: result.updatedSiswa.id_siswa,
+          nama_siswa: result.updatedSiswa.nama_siswa,
+          nis: result.updatedSiswa.nis,
+          id_kelas: result.updatedSiswa.id_kelas,
+          username: result.updatedUser.username,
+          role: result.updatedUser.role,
         },
-      });
-
-      res.json({
-        data: siswa,
-        message: "Berhasil mengubah data Murid",
       });
     } catch (error) {
-      res.status(400).send(error.message);
+      console.error(error);
+      if (error.code === "P2002") {
+        return res
+          .status(400)
+          .json({ message: "Username atau NIS sudah digunakan" });
+      }
+      res.status(500).json({ message: "Server error" });
     }
   },
 

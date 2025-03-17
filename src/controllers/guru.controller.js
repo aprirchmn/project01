@@ -1,5 +1,6 @@
 const prisma = require("../db");
 const bcrypt = require("bcrypt");
+const { parse } = require("dotenv");
 
 const guruController = {
   getAll: async (req, res) => {
@@ -88,43 +89,61 @@ const guruController = {
   },
 
   update: async (req, res) => {
+    const id_guru = req.params.id;
+    const { nama_guru, nip, username, password } = req.body;
+
     try {
-      const guruId = parseInt(req.params.id);
-      const guruData = req.body;
+      const result = await prisma.$transaction(async (prisma) => {
+        const guru = await prisma.guru.findUnique({
+          where: { id_guru: parseInt(id_guru) },
+        });
 
-      if (!(guruData.nama_guru && guruData.nip && guruData.password)) {
-        return res
-          .status(400)
-          .json({ message: "Tidak boleh ada data yang kosong" });
-      }
+        if (!guru) {
+          return res.status(404).json({ message: "Guru tidak ditemukan" });
+        }
 
-      const existingGuru = await prisma.guru.findUnique({
-        where: {
-          id_guru: guruId,
-        },
+        const updatedGuru = await prisma.guru.update({
+          where: { id_guru: parseInt(id_guru) },
+          data: {
+            nama_guru,
+            nip,
+            username,
+          },
+        });
+
+        const updateUserData = { username };
+
+        if (password) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          updateUserData.password = hashedPassword;
+        }
+
+        const updatedUser = await prisma.user.update({
+          where: { id: guru.user_id },
+          data: updateUserData,
+        });
+
+        return { updatedGuru, updatedUser };
       });
 
-      if (!existingGuru) {
-        throw Error("Data Guru tidak ditemukan");
-      }
-
-      const guru = await prisma.guru.update({
-        where: {
-          id_guru: guruId,
-        },
+      res.status(200).json({
+        message: "Data guru berhasil diperbarui",
         data: {
-          nama_guru: guruData.nama_guru,
-          nip: guruData.nip,
-          password: guruData.password,
+          id_guru: result.updatedGuru.id_guru,
+          nama_guru: result.updatedGuru.nama_guru,
+          nip: result.updatedGuru.nip,
+          username: result.updatedUser.username,
+          role: result.updatedUser.role,
         },
-      });
-
-      res.json({
-        data: guru,
-        message: "Berhasil mengubah data Guru",
       });
     } catch (error) {
-      res.status(400).send(error.message);
+      console.error(error);
+      if (error.code === "P2002") {
+        return res
+          .status(400)
+          .json({ message: "Username atau NIP sudah digunakan" });
+      }
+      res.status(500).json({ message: "Server error" });
     }
   },
 
