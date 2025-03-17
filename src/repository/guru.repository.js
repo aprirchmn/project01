@@ -63,11 +63,34 @@ const editGuru = async (id, guruData) => {
   return guru;
 };
 
+const saveImportedData = async (data) => {
+  try {
+    await prisma.guru.createMany({
+      data: data.map((guru) => ({
+        nama_guru: guru.nama_guru,
+        nip: guru.nip,
+        password: guru.nip.toString(), // Default password = NIP
+      })),
+      skipDuplicates: true,
+    });
+
+    return await prisma.guru.findMany({
+      where: {
+        nip: { in: data.map((guru) => guru.nip) },
+      },
+    });
+  } catch (error) {
+    console.error("❌ Gagal menyimpan data:", error);
+    throw new Error("Gagal menyimpan data ke database");
+  }
+};
+
 module.exports = {
   findGurus,
   findGuruById,
   insertGuru,
   deleteGuru,
   editGuru,
+  saveImportedData,
   //   findGuruByNama,
 };

@@ -1,4 +1,4 @@
-const { getAllSiswas, getSiswaById, createSiswa, deleteSiswaById, editSiswaById } = require("../services/siswa.service");
+const { getAllSiswas, getSiswaById, createSiswa, deleteSiswaById, editSiswaById, processExcelFile } = require("../services/siswa.service");
 
 const siswaController = {
   getAll: async (req, res) => {
@@ -76,6 +76,23 @@ const siswaController = {
       });
     } catch (error) {
       res.status(400).send(error.message);
+    }
+  },
+
+  importExcel: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "File tidak ditemukan" });
+      }
+
+      const result = await processExcelFile(req.file.path);
+
+      res.status(200).json({
+        message: "Data berhasil diimpor",
+        data: result, // ✅ Pastikan langsung mengirim array data siswa
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Terjadi kesalahan", error: error.message });
     }
   },
 };

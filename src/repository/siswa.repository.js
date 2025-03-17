@@ -65,11 +65,41 @@ const editSiswa = async (id, siswaData) => {
   return siswa;
 };
 
+// ✅ Menambahkan fungsi saveImportedData untuk menyimpan data impor
+const saveImportedData = async (data) => {
+  try {
+    // Simpan data ke database
+    await prisma.siswa.createMany({
+      data: data.map((siswa) => ({
+        nama_siswa: siswa.nama_siswa,
+        nis: siswa.nis,
+        password: siswa.nis.toString(),
+      })),
+      skipDuplicates: true, // Hindari duplikasi
+    });
+
+    // Ambil kembali data yang baru dimasukkan berdasarkan NIS
+    const savedData = await prisma.siswa.findMany({
+      where: {
+        nis: {
+          in: data.map((siswa) => siswa.nis),
+        },
+      },
+    });
+
+    return savedData; // Pastikan mengembalikan daftar siswa
+  } catch (error) {
+    console.error("❌ Gagal menyimpan data:", error);
+    throw new Error("Gagal menyimpan data ke database");
+  }
+};
+
 module.exports = {
   findSiswas,
   findSiswaById,
   insertSiswa,
   deleteSiswa,
   editSiswa,
+  saveImportedData,
   //   findSiswaByNama,
 };

@@ -1,4 +1,4 @@
-const { getAllGurus, getGuruById, createGuru, deleteGuruById, editGuruById } = require("../services/guru.service");
+const { getAllGurus, getGuruById, createGuru, deleteGuruById, editGuruById, processExcelFile } = require("../services/guru.service");
 
 const guruController = {
   getAll: async (req, res) => {
@@ -76,6 +76,23 @@ const guruController = {
       });
     } catch (error) {
       res.status(400).send(error.message);
+    }
+  },
+
+  importExcel: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "File tidak ditemukan" });
+      }
+
+      const result = await processExcelFile(req.file.path);
+
+      res.status(200).json({
+        message: "Data Guru berhasil diimpor",
+        data: result, // ✅ Pastikan langsung mengirim array data guru
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Terjadi kesalahan", error: error.message });
     }
   },
 };

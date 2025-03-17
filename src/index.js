@@ -7,6 +7,7 @@ const app = express();
 const PORT = process.env.PORT;
 
 app.use(express.json()); //untuk bisa membaca body
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/api", (req, res) => {
   res.send("Project Aplikasi CBT berbasis AES");

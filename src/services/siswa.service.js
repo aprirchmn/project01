@@ -1,7 +1,9 @@
 // untuk handle business logic
 
 const prisma = require("../db");
-const { findSiswas, findSiswaById, insertSiswa, deleteSiswa, editSiswa } = require("../repository/siswa.repository");
+const xlsx = require("xlsx");
+const fs = require("fs");
+const { findSiswas, findSiswaById, insertSiswa, deleteSiswa, editSiswa, saveImportedData } = require("../repository/siswa.repository");
 
 const getAllSiswas = async () => {
   const siswas = await findSiswas(); //menampilkan semua data siswa
@@ -45,6 +47,26 @@ const editSiswaById = async (id, siswaData) => {
   return siswa;
 };
 
+const processExcelFile = async (filePath) => {
+  try {
+    // Baca file Excel
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    // Hapus file setelah dibaca
+    fs.unlinkSync(filePath);
+
+    // Simpan data ke database
+    const savedData = await saveImportedData(data);
+
+    return savedData; // Langsung return array data siswa
+  } catch (error) {
+    console.error("❌ Error saat memproses file:", error);
+    throw new Error("Gagal memproses file Excel");
+  }
+};
+
 // const putSiswaById = async (Id, siswaData) => {
 //   const siswa = await patchSiswaById(id, siswaData);
 
@@ -57,4 +79,5 @@ module.exports = {
   createSiswa,
   deleteSiswaById,
   editSiswaById,
+  processExcelFile,
 };
