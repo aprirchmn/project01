@@ -4,7 +4,11 @@ const matapelajaranController = {
   getAll: async (req, res) => {
     try {
       const matapelajarans = await prisma.mata_pelajaran.findMany();
-      res.json(matapelajarans);
+      res.json({
+        status: 200,
+        message: "Berhasil Menampilkan data",
+        data: matapelajarans,
+      });
     } catch (error) {
       res.status(500).send(error.message);
     }
@@ -20,7 +24,9 @@ const matapelajaranController = {
       });
 
       if (!matapelajaran) {
-        return res.status(404).json({ message: "Mata Pelajaran tidak ditemukan" });
+        return res
+          .status(404)
+          .json({ message: "Mata Pelajaran tidak ditemukan" });
       }
       res.json(matapelajaran);
     } catch (error) {
@@ -52,8 +58,12 @@ const matapelajaranController = {
       const matapelajaranId = parseInt(req.params.id);
       const matapelajaranData = req.body;
 
-      if (!(matapelajaranData.id_guru && matapelajaranData.nama_mata_pelajaran)) {
-        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+      if (
+        !(matapelajaranData.id_guru && matapelajaranData.nama_mata_pelajaran)
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Tidak boleh ada data yang kosong" });
       }
 
       const existingMatapelajaran = await prisma.mata_pelajaran.findUnique({
@@ -61,7 +71,9 @@ const matapelajaranController = {
       });
 
       if (!existingMatapelajaran) {
-        return res.status(404).json({ message: "Mata Pelajaran tidak ditemukan" });
+        return res
+          .status(404)
+          .json({ message: "Mata Pelajaran tidak ditemukan" });
       }
 
       const matapelajaran = await prisma.mata_pelajaran.update({
@@ -92,7 +104,9 @@ const matapelajaranController = {
       });
 
       if (!existingMatapelajaran) {
-        return res.status(404).json({ message: "Mata Pelajaran tidak ditemukan" });
+        return res
+          .status(404)
+          .json({ message: "Mata Pelajaran tidak ditemukan" });
       }
 
       await prisma.mata_pelajaran.delete({
@@ -117,7 +131,9 @@ const matapelajaranController = {
       });
 
       if (!existingMatapelajaran) {
-        return res.status(404).json({ message: "Mata Pelajaran tidak ditemukan" });
+        return res
+          .status(404)
+          .json({ message: "Mata Pelajaran tidak ditemukan" });
       }
 
       const matapelajaran = await prisma.mata_pelajaran.update({
@@ -125,8 +141,12 @@ const matapelajaranController = {
           id_mata_pelajaran: matapelajaranId,
         },
         data: {
-          ...(matapelajaranData.id_guru && { id_guru: matapelajaranData.id_guru }),
-          ...(matapelajaranData.nama_mata_pelajaran && { nama_mata_pelajaran: matapelajaranData.nama_mata_pelajaran }),
+          ...(matapelajaranData.id_guru && {
+            id_guru: matapelajaranData.id_guru,
+          }),
+          ...(matapelajaranData.nama_mata_pelajaran && {
+            nama_mata_pelajaran: matapelajaranData.nama_mata_pelajaran,
+          }),
         },
       });
 

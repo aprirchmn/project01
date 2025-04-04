@@ -5,7 +5,11 @@ const kelasController = {
   getAll: async (req, res) => {
     try {
       const kelass = await prisma.kelas.findMany();
-      res.json(kelass);
+      res.json({
+        status: 200,
+        message: "Berhasil",
+        data: kelass,
+      });
     } catch (error) {
       res.status(500).send(error.message);
     }
@@ -32,7 +36,6 @@ const kelasController = {
   create: async (req, res) => {
     try {
       const newKelasData = req.body;
-      // Generate kode kelas secara otomatis
       const kode_kelas = crypto.randomBytes(3).toString("hex").toUpperCase();
 
       const kelas = await prisma.kelas.create({
@@ -57,10 +60,6 @@ const kelasController = {
     try {
       const kelasId = parseInt(req.params.id);
       const kelasData = req.body;
-
-      if (!(kelasData.nama_kelas && kelasData.kode_kelas && kelasData.id_guru)) {
-        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
-      }
 
       const existingKelas = await prisma.kelas.findUnique({
         where: { id_kelas: kelasId },
@@ -136,7 +135,9 @@ const kelasController = {
           ...(kelasData.nama_kelas && { nama_kelas: kelasData.nama_kelas }),
           ...(kelasData.kode_kelas && { kode_kelas: kelasData.kode_kelas }),
           ...(kelasData.id_guru && { id_guru: kelasData.id_guru }),
-          ...(kelasData.deskripsi_kelas && { deskripsi_kelas: kelasData.deskripsi_kelas }),
+          ...(kelasData.deskripsi_kelas && {
+            deskripsi_kelas: kelasData.deskripsi_kelas,
+          }),
         },
       });
 
@@ -154,10 +155,11 @@ const kelasController = {
       const { kode_kelas, id_siswa } = req.body;
 
       if (!kode_kelas || !id_siswa) {
-        return res.status(400).json({ message: "Kode kelas dan ID siswa wajib diisi" });
+        return res
+          .status(400)
+          .json({ message: "Kode kelas dan ID siswa wajib diisi" });
       }
 
-      // Cari kelas berdasarkan kode
       const kelas = await prisma.kelas.findFirst({
         where: { kode_kelas },
         include: { siswa: true },
@@ -167,13 +169,15 @@ const kelasController = {
         return res.status(404).json({ message: "Kode kelas tidak ditemukan" });
       }
 
-      // Cek apakah siswa sudah tergabung
-      const siswaSudahAda = kelas.siswa.some(siswa => siswa.id_siswa === id_siswa);
+      const siswaSudahAda = kelas.siswa.some(
+        (siswa) => siswa.id_siswa === id_siswa,
+      );
       if (siswaSudahAda) {
-        return res.status(400).json({ message: "Siswa sudah tergabung dalam kelas ini" });
+        return res
+          .status(400)
+          .json({ message: "Siswa sudah tergabung dalam kelas ini" });
       }
 
-      // Tambahkan siswa ke kelas
       const updatedKelas = await prisma.kelas.update({
         where: { id_kelas: kelas.id_kelas },
         data: {
@@ -183,7 +187,7 @@ const kelasController = {
 
       res.json({
         data: updatedKelas,
-        message: "Berhasil bergabung ke kelas"
+        message: "Berhasil bergabung ke kelas",
       });
     } catch (error) {
       res.status(400).json({ message: error.message });

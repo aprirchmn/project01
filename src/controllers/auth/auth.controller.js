@@ -31,7 +31,7 @@ exports.login = async (req, res) => {
           user.role === "GURU" ? user.guru?.id_guru : user.siswa?.id_siswa,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" },
+      { expiresIn: "1d" },
     );
 
     const refreshToken = jwt.sign(

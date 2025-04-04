@@ -4,8 +4,16 @@ const bcrypt = require("bcrypt");
 const siswaController = {
   getAll: async (req, res) => {
     try {
-      const siswas = await prisma.siswa.findMany();
-      res.json(siswas);
+      const siswas = await prisma.siswa.findMany({
+        include: {
+          kelas: true,
+        },
+      });
+      res.json({
+        status: 200,
+        message: "Success",
+        data: siswas,
+      });
     } catch (error) {
       res.status(500).send(error.message);
     }

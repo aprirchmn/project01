@@ -10,7 +10,10 @@ const guruController = {
           kelas: true,
         },
       });
-      res.json(gurus);
+      res.json({
+        status: 200,
+        data: gurus,
+      });
     } catch (error) {
       res.status(500).send(error.message);
     }
