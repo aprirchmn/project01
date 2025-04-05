@@ -4,7 +4,11 @@ const jenisujianController = {
   getAll: async (req, res) => {
     try {
       const jenisujians = await prisma.jenis_ujian.findMany();
-      res.json(jenisujians);
+      res.json({
+        status: 200,
+        message: "Data Berhasil ditemukan",
+        data: jenisujians,
+      });
     } catch (error) {
       res.status(500).send(error.message);
     }
@@ -75,7 +79,9 @@ const jenisujianController = {
         message: "Berhasil mengubah Jenis Ujian",
       });
     } catch (error) {
-      res.status(500).send("Terjadi kesalahan saat memperbarui data Jenis Ujian");
+      res
+        .status(500)
+        .send("Terjadi kesalahan saat memperbarui data Jenis Ujian");
     }
   },
 
@@ -97,7 +103,9 @@ const jenisujianController = {
           id_jenis_ujian: jenisujianId,
         },
         data: {
-          ...(jenisujianData.jenis_ujian && { jenis_ujian: jenisujianData.jenis_ujian }),
+          ...(jenisujianData.jenis_ujian && {
+            jenis_ujian: jenisujianData.jenis_ujian,
+          }),
         },
       });
 

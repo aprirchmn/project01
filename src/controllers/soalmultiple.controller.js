@@ -4,7 +4,11 @@ const soalmultipleController = {
   getAll: async (req, res) => {
     try {
       const soalmultiples = await prisma.soal_multiple.findMany();
-      res.json(soalmultiples);
+      res.json({
+        status: 200,
+        message: "Berhasil menampilkan data",
+        data: soalmultiples,
+      });
     } catch (error) {
       res.status(500).send(error.message);
     }
@@ -25,7 +29,11 @@ const soalmultipleController = {
           .json({ message: "Soal Multiple tidak ditemukan" });
       }
 
-      res.json(soalmultiple);
+      res.json({
+        status: 200,
+        message: "Berhasil menampilkan data",
+        data: soalmultiple,
+      });
     } catch (error) {
       res.status(400).send(error.message);
     }
@@ -38,6 +46,7 @@ const soalmultipleController = {
         data: {
           id_mata_pelajaran: newSoalmultipleData.id_mata_pelajaran,
           id_jenis_ujian: newSoalmultipleData.id_jenis_ujian,
+          id_ujian: newSoalmultipleData.id_ujian,
           pertanyaan: newSoalmultipleData.pertanyaan,
           pilihan_a: newSoalmultipleData.pilihan_a,
           pilihan_b: newSoalmultipleData.pilihan_b,
