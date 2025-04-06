@@ -1,5 +1,9 @@
 const prisma = require("../db");
 const bcrypt = require("bcrypt");
+const xlsx = require("xlsx");
+const fs = require("fs");
+const multer = require("multer");
+const path = require("path");
 
 const siswaController = {
   getAll: async (req, res) => {
@@ -199,6 +203,103 @@ const siswaController = {
     } catch (error) {
       res.status(400).send(error.message);
     }
+  },
+
+  importExcel: async (req, res) => {
+    const storage = multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, "uploads/");
+      },
+      filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname));
+      },
+    });
+
+    const upload = multer({ storage }).single("file");
+
+    upload(req, res, async function (err) {
+      if (err) {
+        return res.status(400).json({ message: err.message });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "File tidak ditemukan" });
+      }
+
+      try {
+        const workbook = xlsx.readFile(req.file.path);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = xlsx.utils.sheet_to_json(sheet);
+
+        const imported = [];
+        const skipped = [];
+
+        for (const row of data) {
+          const { username, password, nama_siswa, nis, id_mata_pelajaran } = row;
+
+          if (!username || !password || !nama_siswa || !nis) {
+            skipped.push({ row, reason: "Data tidak lengkap" });
+            continue;
+          }
+
+          const userExist = await prisma.user.findUnique({ where: { username } });
+
+          if (userExist) {
+            skipped.push({ row, reason: "Data sudah ada" });
+            continue;
+          }
+
+          const nisExist = await prisma.siswa.findUnique({ where: { nis } });
+
+          if (nisExist) {
+            skipped.push({ row, reason: "NIS sudah digunakan" });
+            continue;
+          }
+
+          const hashedPassword = await bcrypt.hash(password.toString(), 10);
+
+          const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+              data: {
+                username,
+                password: hashedPassword,
+                role: "SISWA",
+              },
+            });
+
+            const siswa = await tx.siswa.create({
+              data: {
+                nama_siswa,
+                nis,
+                // id_mata_pelajaran: id_mata_pelajaran || null,
+                user_id: user.id,
+              },
+            });
+
+            return {
+              id_siswa: siswa.id_siswa,
+              nama_siswa: siswa.nama_siswa,
+              nis: siswa.nis,
+              username: user.username,
+              role: user.role,
+            };
+          });
+
+          imported.push(result);
+        }
+
+        res.status(200).json({
+          message: "Import selesai",
+          imported: imported.length,
+          skipped: skipped.length,
+          data_imported: imported,
+          data_skipped: skipped,
+        });
+      } catch (error) {
+        console.error("❌ Error importExcel:", error);
+        res.status(500).json({ message: "Gagal import", error: error.message });
+      }
+    });
   },
 };
 

@@ -1,6 +1,10 @@
 const prisma = require("../db");
 const bcrypt = require("bcrypt");
 const { parse } = require("dotenv");
+const xlsx = require("xlsx");
+const fs = require("fs");
+const multer = require("multer");
+const path = require("path");
 
 const guruController = {
   getAll: async (req, res) => {
@@ -205,6 +209,101 @@ const guruController = {
     } catch (error) {
       res.status(400).send(error.message);
     }
+  },
+
+  importExcel: async (req, res) => {
+    const storage = multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, "uploads/");
+      },
+      filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname));
+      },
+    });
+
+    const upload = multer({ storage }).single("file");
+
+    upload(req, res, async function (err) {
+      if (err) {
+        return res.status(400).json({ message: err.message });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "File tidak ditemukan" });
+      }
+
+      try {
+        const workbook = xlsx.readFile(req.file.path);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = xlsx.utils.sheet_to_json(sheet);
+
+        const imported = [];
+        const skipped = [];
+
+        for (const row of data) {
+          const { username, password, nama_guru, nip, id_mata_pelajaran } = row;
+
+          if (!username || !password || !nama_guru || !nip) {
+            skipped.push({ row, reason: "Data tidak lengkap" });
+            continue;
+          }
+
+          const userExist = await prisma.user.findUnique({ where: { username } });
+          const nipExist = await prisma.guru.findUnique({ where: { nip } });
+
+          if (userExist || nipExist) {
+            skipped.push({ row, reason: "Data sudah ada" });
+            continue;
+          }
+
+          const hashedPassword = await bcrypt.hash(password.toString(), 10);
+
+          const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+              data: {
+                username,
+                password: hashedPassword,
+                role: "GURU",
+              },
+            });
+
+            const guru = await tx.guru.create({
+              data: {
+                nama_guru,
+                nip,
+                user_id: user.id,
+                username,
+                // id_mata_pelajaran: id_mata_pelajaran || null,
+              },
+            });
+
+            return {
+              id_guru: guru.id_guru,
+              nama_guru: guru.nama_guru,
+              nip: guru.nip,
+              username: user.username,
+              role: user.role,
+            };
+          });
+
+          imported.push(result);
+        }
+
+        res.status(200).json({
+          message: "Import guru selesai",
+          imported: imported.length,
+          skipped: skipped.length,
+          data_imported: imported,
+          data_skipped: skipped,
+        });
+
+        // Opsional: hapus file upload setelah diproses
+        fs.unlinkSync(req.file.path);
+      } catch (error) {
+        console.error("❌ Error importExcel guru:", error);
+        res.status(500).json({ message: "Gagal import guru", error: error.message });
+      }
+    });
   },
 };
 
