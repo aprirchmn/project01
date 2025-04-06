@@ -7,5 +7,4 @@ model guru {
   username       String
   mata_pelajaran mata_pelajaran[]
   ujian          ujian[]
-  kelas          kelas[]
 }

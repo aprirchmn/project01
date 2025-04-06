@@ -7,7 +7,7 @@ const guruController = {
     try {
       const gurus = await prisma.guru.findMany({
         include: {
-          kelas: true,
+          mata_pelajaran: true,
         },
       });
       res.json({
@@ -38,7 +38,7 @@ const guruController = {
   },
 
   create: async (req, res) => {
-    const { username, password, nama_guru, nip, id_kelas } = req.body;
+    const { username, password, nama_guru, nip, id_mata_pelajaran } = req.body;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -83,9 +83,7 @@ const guruController = {
     } catch (error) {
       console.error(error);
       if (error.code === "P2002") {
-        return res
-          .status(400)
-          .json({ message: "Username atau NIP sudah digunakan" });
+        return res.status(400).json({ message: "Username atau NIP sudah digunakan" });
       }
       res.status(500).json({ message: "Server error" });
     }
@@ -142,9 +140,7 @@ const guruController = {
     } catch (error) {
       console.error(error);
       if (error.code === "P2002") {
-        return res
-          .status(400)
-          .json({ message: "Username atau NIP sudah digunakan" });
+        return res.status(400).json({ message: "Username atau NIP sudah digunakan" });
       }
       res.status(500).json({ message: "Server error" });
     }

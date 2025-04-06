@@ -6,7 +6,7 @@ const siswaController = {
     try {
       const siswas = await prisma.siswa.findMany({
         include: {
-          kelas: true,
+          mata_pelajaran: true,
         },
       });
       res.json({
@@ -38,7 +38,7 @@ const siswaController = {
   },
 
   create: async (req, res) => {
-    const { username, password, nama_siswa, nis, id_kelas } = req.body;
+    const { username, password, nama_siswa, nis, id_mata_pelajaran } = req.body;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -56,7 +56,7 @@ const siswaController = {
           data: {
             nama_siswa,
             nis,
-            id_kelas,
+            id_mata_pelajaran,
             user_id: user.id,
           },
         });
@@ -70,7 +70,7 @@ const siswaController = {
           id_siswa: result.siswa.id_siswa,
           nama_siswa: result.siswa.nama_siswa,
           nis: result.siswa.nis,
-          id_kelas: result.siswa.id_kelas,
+          id_mata_pelajaran: result.siswa.id_mata_pelajaran,
           username: result.user.username,
           role: result.user.role,
         },
@@ -78,9 +78,7 @@ const siswaController = {
     } catch (error) {
       console.error(error);
       if (error.code === "P2002") {
-        return res
-          .status(400)
-          .json({ message: "Username atau NIS sudah digunakan" });
+        return res.status(400).json({ message: "Username atau NIS sudah digunakan" });
       }
       res.status(500).json({ message: "Server error" });
     }
@@ -88,7 +86,7 @@ const siswaController = {
 
   update: async (req, res) => {
     const id_siswa = req.params.id;
-    const { nama_siswa, nis, id_kelas, username, password } = req.body;
+    const { nama_siswa, nis, id_mata_pelajaran, username, password } = req.body;
 
     try {
       const result = await prisma.$transaction(async (prisma) => {
@@ -105,7 +103,7 @@ const siswaController = {
           data: {
             nama_siswa,
             nis,
-            id_kelas,
+            id_mata_pelajaran,
           },
         });
 
@@ -130,7 +128,7 @@ const siswaController = {
           id_siswa: result.updatedSiswa.id_siswa,
           nama_siswa: result.updatedSiswa.nama_siswa,
           nis: result.updatedSiswa.nis,
-          id_kelas: result.updatedSiswa.id_kelas,
+          id_mata_pelajaran: result.updatedSiswa.id_mata_pelajaran,
           username: result.updatedUser.username,
           role: result.updatedUser.role,
         },
@@ -138,9 +136,7 @@ const siswaController = {
     } catch (error) {
       console.error(error);
       if (error.code === "P2002") {
-        return res
-          .status(400)
-          .json({ message: "Username atau NIS sudah digunakan" });
+        return res.status(400).json({ message: "Username atau NIS sudah digunakan" });
       }
       res.status(500).json({ message: "Server error" });
     }

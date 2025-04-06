@@ -36,9 +36,7 @@ const ujianController = {
         ujian.soal_essays = [];
         // Jika konfigurasi acak aktif, acak urutan soal multiple
         if (ujian.acak_soal) {
-          ujian.soal_multiples = ujian.soal_multiples.sort(
-            () => Math.random() - 0.5,
-          );
+          ujian.soal_multiples = ujian.soal_multiples.sort(() => Math.random() - 0.5);
         }
       } else if (ujian.tipe_ujian === "ESSAY") {
         // Jika ujian tipe essay, kosongkan soal multiple choice
@@ -62,12 +60,13 @@ const ujianController = {
         data: {
           id_mata_pelajaran: newUjianData.id_mata_pelajaran,
           id_guru: newUjianData.id_guru,
-          id_kelas: newUjianData.id_kelas,
+          // id_kelas: newUjianData.id_kelas,
           id_jenis_ujian: newUjianData.id_jenis_ujian,
           tanggal_ujian: newUjianData.tanggal_ujian,
           durasi_ujian: newUjianData.durasi_ujian,
           deskripsi_ujian: newUjianData.deskripsi_ujian,
           status_ujian: newUjianData.status_ujian,
+          status_publish: newUjianData.status_publish,
           id_siswa: newUjianData.id_siswa,
           nama_ujian: newUjianData.nama_ujian,
           tipe_ujian: newUjianData.tipe_ujian,
@@ -100,12 +99,13 @@ const ujianController = {
         !(
           ujianData.id_mata_pelajaran &&
           ujianData.id_guru &&
-          ujianData.id_kelas &&
+          // ujianData.id_kelas &&
           ujianData.id_jenis_ujian &&
           ujianData.tanggal_ujian &&
           ujianData.durasi_ujian &&
           ujianData.deskripsi_ujian &&
           ujianData.status_ujian &&
+          ujianData.status_publish &&
           ujianData.id_siswa &&
           ujianData.nama_ujian &&
           ujianData.tipe_ujian &&
@@ -115,9 +115,7 @@ const ujianController = {
           ujianData.accessCamera !== undefined
         )
       ) {
-        return res
-          .status(400)
-          .json({ message: "Tidak boleh ada data yang kosong" });
+        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
       }
 
       // Check if ujian exists
@@ -136,12 +134,13 @@ const ujianController = {
         data: {
           id_mata_pelajaran: ujianData.id_mata_pelajaran,
           id_guru: ujianData.id_guru,
-          id_kelas: ujianData.id_kelas,
+          // id_kelas: ujianData.id_kelas,
           id_jenis_ujian: ujianData.id_jenis_ujian,
           tanggal_ujian: ujianData.tanggal_ujian,
           durasi_ujian: ujianData.durasi_ujian,
           deskripsi_ujian: ujianData.deskripsi_ujian,
           status_ujian: ujianData.status_ujian,
+          status_publish: ujianData.status_publish,
           id_siswa: ujianData.id_siswa,
           nama_ujian: ujianData.nama_ujian,
           tipe_ujian: ujianData.tipe_ujian,
