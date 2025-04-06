@@ -4,11 +4,7 @@ const crypto = require("crypto");
 const matapelajaranController = {
   getAll: async (req, res) => {
     try {
-      const matapelajarans = await prisma.mata_pelajaran.findMany({
-        include: {
-          kelas: true,
-        },
-      });
+      const matapelajarans = await prisma.mata_pelajaran.findMany();
 
       res.json({
         status: 200,
@@ -45,6 +41,14 @@ const matapelajaranController = {
               },
             },
           },
+          ujian: {
+            select: {
+              nama_ujian: true,
+              tanggal_ujian: true,
+              durasi_ujian: true,
+              deskripsi_ujian: true,
+            },
+          },
         },
       });
 
@@ -53,7 +57,12 @@ const matapelajaranController = {
           .status(404)
           .json({ message: "Mata Pelajaran tidak ditemukan" });
       }
-      res.json(matapelajaran);
+
+      res.json({
+        status: 200,
+        message: "Berhasil Menampilkan data",
+        data: matapelajaran,
+      });
     } catch (error) {
       res.status(400).send(error.message);
     }
@@ -91,14 +100,6 @@ const matapelajaranController = {
       const matapelajaranId = parseInt(req.params.id);
       const matapelajaranData = req.body;
 
-      if (
-        !(matapelajaranData.id_guru && matapelajaranData.nama_mata_pelajaran)
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Tidak boleh ada data yang kosong" });
-      }
-
       const existingMatapelajaran = await prisma.mata_pelajaran.findUnique({
         where: { id_mata_pelajaran: matapelajaranId },
       });
@@ -116,6 +117,7 @@ const matapelajaranController = {
         data: {
           id_guru: matapelajaranData.id_guru,
           nama_mata_pelajaran: matapelajaranData.nama_mata_pelajaran,
+          deskripsi_mata_pelajaran: matapelajaranData.deskripsi_mata_pelajaran,
         },
       });
 

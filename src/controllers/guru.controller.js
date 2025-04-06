@@ -45,7 +45,7 @@ const guruController = {
             username,
             password: hashedPassword,
             role: "GURU",
-            email,
+            ...(email && { email }), // optional update
           },
         });
 
@@ -55,7 +55,7 @@ const guruController = {
             nip,
             user_id: user.id,
             username,
-            email,
+            ...(email && { email }), // optional update
           },
         });
 
@@ -85,7 +85,7 @@ const guruController = {
 
   update: async (req, res) => {
     const id_guru = req.params.id;
-    const { nama_guru, nip, username, password } = req.body;
+    const { nama_guru, nip, username, password, email } = req.body;
 
     try {
       const result = await prisma.$transaction(async (prisma) => {
@@ -103,10 +103,14 @@ const guruController = {
             nama_guru,
             nip,
             username,
+            ...(email && { email }), // optional update
           },
         });
 
-        const updateUserData = { username };
+        const updateUserData = {
+          username,
+          ...(email && { email }), // optional update
+        };
 
         if (password) {
           const hashedPassword = await bcrypt.hash(password, 10);
@@ -153,7 +157,33 @@ const guruController = {
       });
 
       if (!existingGuru) {
-        throw Error("Data Guru tidak ditemukan");
+        return res.status(404).json({ message: "Data Guru tidak ditemukan" });
+      }
+
+      const hasRelatedSubjects = await prisma.mata_pelajaran.findFirst({
+        where: {
+          id_guru: guruId,
+        },
+      });
+
+      if (hasRelatedSubjects) {
+        return res.status(400).json({
+          message:
+            "Guru tidak dapat dihapus karena masih memiliki data mata pelajaran terkait",
+        });
+      }
+
+      const hasRelatedExams = await prisma.ujian.findFirst({
+        where: {
+          id_guru: guruId,
+        },
+      });
+
+      if (hasRelatedExams) {
+        return res.status(400).json({
+          message:
+            "Guru tidak dapat dihapus karena masih memiliki data ujian terkait",
+        });
       }
 
       await prisma.guru.delete({
@@ -164,10 +194,10 @@ const guruController = {
 
       res.status(200).json({ message: "Akun Guru berhasil dihapus" });
     } catch (error) {
+      console.error("Error deleting guru:", error);
       res.status(400).send(error.message);
     }
   },
-
   patch: async (req, res) => {
     try {
       const guruId = parseInt(req.params.id);

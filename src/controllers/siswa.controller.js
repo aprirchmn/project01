@@ -4,11 +4,7 @@ const bcrypt = require("bcrypt");
 const siswaController = {
   getAll: async (req, res) => {
     try {
-      const siswas = await prisma.siswa.findMany({
-        include: {
-          kelas: true,
-        },
-      });
+      const siswas = await prisma.siswa.findMany();
       res.json({
         status: 200,
         message: "Success",
@@ -50,7 +46,7 @@ const siswaController = {
             username,
             password: hashedPassword,
             role: "SISWA",
-            email,
+            ...(email && { email }),
           },
         });
 
@@ -58,7 +54,7 @@ const siswaController = {
           data: {
             nama_siswa,
             nis,
-            email,
+            ...(email && { email }),
             user_id: user.id,
           },
         });
@@ -90,7 +86,7 @@ const siswaController = {
 
   update: async (req, res) => {
     const id_siswa = req.params.id;
-    const { nama_siswa, nis, id_kelas, username, password } = req.body;
+    const { nama_siswa, nis, id_kelas, username, password, email } = req.body;
 
     try {
       const result = await prisma.$transaction(async (prisma) => {
@@ -108,10 +104,14 @@ const siswaController = {
             nama_siswa,
             nis,
             id_kelas,
+            ...(email && { email }), // optional update
           },
         });
 
-        const updateUserData = { username };
+        const updateUserData = {
+          username,
+          ...(email && { email }), // optional update
+        };
 
         if (password) {
           const hashedPassword = await bcrypt.hash(password, 10);
@@ -133,6 +133,7 @@ const siswaController = {
           nama_siswa: result.updatedSiswa.nama_siswa,
           nis: result.updatedSiswa.nis,
           id_kelas: result.updatedSiswa.id_kelas,
+          email: result.updatedSiswa.email,
           username: result.updatedUser.username,
           role: result.updatedUser.role,
         },
@@ -140,11 +141,11 @@ const siswaController = {
     } catch (error) {
       console.error(error);
       if (error.code === "P2002") {
-        return res
-          .status(400)
-          .json({ message: "Username atau NIS sudah digunakan" });
+        return res.status(400).json({
+          message: "Username, NIS, atau email sudah digunakan",
+        });
       }
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   },
 
@@ -152,7 +153,6 @@ const siswaController = {
     try {
       const siswaId = parseInt(req.params.id);
 
-      // Check if siswa exists
       const existingSiswa = await prisma.siswa.findUnique({
         where: {
           id_siswa: siswaId,
@@ -163,14 +163,35 @@ const siswaController = {
         return res.status(404).json({ message: "Data Murid tidak ditemukan" });
       }
 
-      await prisma.siswa.delete({
-        where: {
-          id_siswa: siswaId,
-        },
+      await prisma.$transaction(async (prisma) => {
+        await prisma.mata_pelajaran_siswa.deleteMany({
+          where: {
+            id_siswa: siswaId,
+          },
+        });
+
+        await prisma.hasil_ujian.deleteMany({
+          where: {
+            id_siswa: siswaId,
+          },
+        });
+
+        await prisma.jawaban.deleteMany({
+          where: {
+            id_siswa: siswaId,
+          },
+        });
+
+        await prisma.siswa.delete({
+          where: {
+            id_siswa: siswaId,
+          },
+        });
       });
 
       res.status(200).json({ message: "Akun Murid berhasil dihapus" });
     } catch (error) {
+      console.error("Error deleting student:", error);
       res.status(400).send(error.message);
     }
   },

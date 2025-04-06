@@ -1,10 +1,7 @@
-// Ujian (exam) model and related models
-
 model ujian {
   id_ujian          Int       @id @default(autoincrement())
   id_mata_pelajaran Int
   id_guru           Int
-  id_jenis_ujian    Int
   tanggal_ujian     DateTime
   durasi_ujian      Int
   deskripsi_ujian   String
@@ -12,16 +9,15 @@ model ujian {
   nama_ujian        String
   tipe_ujian        TipeUjian
   acak_soal         Boolean   @default(false)
-  tampilkan_nilai   Boolean   @default(true)
+  tampilkan_nilai   Boolean   @default(false)
   tampilkan_jawaban Boolean   @default(false)
-  accessCamera      Boolean   @default(true)
+  accessCamera      Boolean   @default(false)
 
   // Relations
-  mata_pelajaran mata_pelajaran  @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
-  guru           guru            @relation(fields: [id_guru], references: [id_guru])
-  jenis_ujian    jenis_ujian     @relation(fields: [id_jenis_ujian], references: [id_jenis_ujian])
-  soal_essay     soal_essay[]
-  soal_multiple  soal_multiple[]
+  mata_pelajaran mata_pelajaran   @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
+  guru           guru             @relation(fields: [id_guru], references: [id_guru])
+  soal_essay     soal_essay[]?
+  soal_multiple  soal_multiple[]?
   hasil_ujian    hasil_ujian[]
   jawaban        jawaban[]
 }
@@ -29,7 +25,6 @@ model ujian {
 model soal_essay {
   id_soal_essay     Int    @id @default(autoincrement())
   id_mata_pelajaran Int
-  id_jenis_ujian    Int
   id_ujian          Int?
   pertanyaan        String
   kunci_jawaban     String
@@ -37,7 +32,6 @@ model soal_essay {
 
   // Relations
   mata_pelajaran mata_pelajaran @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
-  jenis_ujian    jenis_ujian    @relation(fields: [id_jenis_ujian], references: [id_jenis_ujian])
   ujian          ujian?         @relation(fields: [id_ujian], references: [id_ujian])
   jawaban        jawaban[]
 }
@@ -45,7 +39,6 @@ model soal_essay {
 model soal_multiple {
   id_soal_multiple  Int    @id @default(autoincrement())
   id_mata_pelajaran Int
-  id_jenis_ujian    Int
   id_ujian          Int?
   pertanyaan        String
   pilihan_a         String
@@ -58,7 +51,6 @@ model soal_multiple {
 
   // Relations
   mata_pelajaran mata_pelajaran @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
-  jenis_ujian    jenis_ujian    @relation(fields: [id_jenis_ujian], references: [id_jenis_ujian])
   ujian          ujian?         @relation(fields: [id_ujian], references: [id_ujian])
   jawaban        jawaban[]
 }
