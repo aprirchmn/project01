@@ -1,12 +1,23 @@
 model siswa {
-  id_siswa    Int           @id @default(autoincrement())
-  nama_siswa  String
-  nis         Int           @unique
-  user_id     Int           @unique
-  user        User          @relation(fields: [user_id], references: [id])
-  id_kelas    Int?
-  hasil_ujian hasil_ujian[]
-  jawaban     jawaban[]
-  kelas       kelas?        @relation(fields: [id_kelas], references: [id_kelas])
-  ujian       ujian[]
+  id_siswa             Int                    @id @default(autoincrement())
+  nama_siswa           String
+  nis                  String                 @unique
+  email                String                 @unique
+  user_id              Int                    @unique
+  user                 User                   @relation(fields: [user_id], references: [id])
+  mata_pelajaran_siswa mata_pelajaran_siswa[]
+  hasil_ujian          hasil_ujian[]
+  jawaban              jawaban[]
+}
+
+model mata_pelajaran_siswa {
+  id                Int @id @default(autoincrement())
+  id_mata_pelajaran Int
+  id_siswa          Int
+
+  // Relations
+  mata_pelajaran mata_pelajaran @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
+  siswa          siswa          @relation(fields: [id_siswa], references: [id_siswa])
+
+  @@unique([id_mata_pelajaran, id_siswa])
 }

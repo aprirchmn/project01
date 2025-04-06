@@ -1,9 +1,15 @@
 const prisma = require("../db");
+const crypto = require("crypto");
 
 const matapelajaranController = {
   getAll: async (req, res) => {
     try {
-      const matapelajarans = await prisma.mata_pelajaran.findMany();
+      const matapelajarans = await prisma.mata_pelajaran.findMany({
+        include: {
+          kelas: true,
+        },
+      });
+
       res.json({
         status: 200,
         message: "Berhasil Menampilkan data",
@@ -21,6 +27,25 @@ const matapelajaranController = {
         where: {
           id_mata_pelajaran: matapelajaranId,
         },
+        include: {
+          guru: {
+            select: {
+              nama_guru: true,
+              id_guru: true,
+            },
+          },
+          siswa: {
+            include: {
+              siswa: {
+                select: {
+                  nama_siswa: true,
+                  nis: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       if (!matapelajaran) {
@@ -37,9 +62,17 @@ const matapelajaranController = {
   create: async (req, res) => {
     try {
       const newMatapelajaranData = req.body;
+      const kode_mata_pelajaran = crypto
+        .randomBytes(3)
+        .toString("hex")
+        .toUpperCase();
+
       const matapelajaran = await prisma.mata_pelajaran.create({
         data: {
           id_guru: newMatapelajaranData.id_guru,
+          kode_mata_pelajaran: kode_mata_pelajaran,
+          deskripsi_mata_pelajaran:
+            newMatapelajaranData.deskripsi_mata_pelajaran,
           nama_mata_pelajaran: newMatapelajaranData.nama_mata_pelajaran,
         },
       });
@@ -116,44 +149,6 @@ const matapelajaranController = {
       });
 
       res.status(200).json({ message: "Mata Pelajaran berhasil dihapus" });
-    } catch (error) {
-      res.status(400).send(error.message);
-    }
-  },
-
-  patch: async (req, res) => {
-    try {
-      const matapelajaranId = parseInt(req.params.id);
-      const matapelajaranData = req.body;
-
-      const existingMatapelajaran = await prisma.mata_pelajaran.findUnique({
-        where: { id_mata_pelajaran: matapelajaranId },
-      });
-
-      if (!existingMatapelajaran) {
-        return res
-          .status(404)
-          .json({ message: "Mata Pelajaran tidak ditemukan" });
-      }
-
-      const matapelajaran = await prisma.mata_pelajaran.update({
-        where: {
-          id_mata_pelajaran: matapelajaranId,
-        },
-        data: {
-          ...(matapelajaranData.id_guru && {
-            id_guru: matapelajaranData.id_guru,
-          }),
-          ...(matapelajaranData.nama_mata_pelajaran && {
-            nama_mata_pelajaran: matapelajaranData.nama_mata_pelajaran,
-          }),
-        },
-      });
-
-      res.json({
-        data: matapelajaran,
-        message: "Berhasil mengedit data Mata Pelajaran",
-      });
     } catch (error) {
       res.status(400).send(error.message);
     }

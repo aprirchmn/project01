@@ -38,7 +38,8 @@ const siswaController = {
   },
 
   create: async (req, res) => {
-    const { username, password, nama_siswa, nis, id_kelas } = req.body;
+    const { username, password, nama_siswa, nis, email, mata_pelajaran_ids } =
+      req.body;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -49,6 +50,7 @@ const siswaController = {
             username,
             password: hashedPassword,
             role: "SISWA",
+            email,
           },
         });
 
@@ -56,7 +58,7 @@ const siswaController = {
           data: {
             nama_siswa,
             nis,
-            id_kelas,
+            email,
             user_id: user.id,
           },
         });
@@ -70,7 +72,7 @@ const siswaController = {
           id_siswa: result.siswa.id_siswa,
           nama_siswa: result.siswa.nama_siswa,
           nis: result.siswa.nis,
-          id_kelas: result.siswa.id_kelas,
+          email: result.siswa.email,
           username: result.user.username,
           role: result.user.role,
         },
@@ -80,9 +82,9 @@ const siswaController = {
       if (error.code === "P2002") {
         return res
           .status(400)
-          .json({ message: "Username atau NIS sudah digunakan" });
+          .json({ message: "Username, NIS, atau email sudah digunakan" });
       }
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   },
 
@@ -173,35 +175,79 @@ const siswaController = {
     }
   },
 
-  patch: async (req, res) => {
-    try {
-      const siswaId = parseInt(req.params.id);
-      const siswaData = req.body;
+  join: async (req, res) => {
+    const { id_siswa } = req.params;
+    const { kode_mata_pelajaran } = req.body;
 
-      // Check if siswa exists
-      const existingSiswa = await prisma.siswa.findUnique({
-        where: {
-          id_siswa: siswaId,
-        },
+    try {
+      const siswa = await prisma.siswa.findUnique({
+        where: { id_siswa: parseInt(id_siswa) },
       });
 
-      if (!existingSiswa) {
-        return res.status(404).json({ message: "Data Murid tidak ditemukan" });
+      if (!siswa) {
+        return res.status(404).json({ message: "Siswa tidak ditemukan" });
       }
 
-      const siswa = await prisma.siswa.update({
-        where: {
-          id_siswa: siswaId,
-        },
-        data: siswaData,
+      const mataPelajaran = await prisma.mata_pelajaran.findUnique({
+        where: { kode_mata_pelajaran },
       });
 
-      res.json({
-        data: siswa,
-        message: "Berhasil mengedit data Murid",
+      if (!mataPelajaran) {
+        return res
+          .status(404)
+          .json({ message: "Mata pelajaran tidak ditemukan" });
+      }
+
+      const existingEnrollment = await prisma.mata_pelajaran_siswa.findUnique({
+        where: {
+          id_mata_pelajaran_id_siswa: {
+            id_siswa: parseInt(id_siswa),
+            id_mata_pelajaran: mataPelajaran.id_mata_pelajaran,
+          },
+        },
+      });
+
+      if (existingEnrollment) {
+        return res
+          .status(400)
+          .json({ message: "Siswa sudah terdaftar di mata pelajaran ini" });
+      }
+
+      const enrollment = await prisma.mata_pelajaran_siswa.create({
+        data: {
+          id_siswa: parseInt(id_siswa),
+          id_mata_pelajaran: mataPelajaran.id_mata_pelajaran,
+        },
+      });
+
+      const mataPelajaranDetail = await prisma.mata_pelajaran.findUnique({
+        where: { id_mata_pelajaran: mataPelajaran.id_mata_pelajaran },
+        include: {
+          guru: {
+            select: {
+              nama_guru: true,
+            },
+          },
+        },
+      });
+
+      res.status(201).json({
+        message: "Berhasil bergabung dengan mata pelajaran",
+        data: {
+          id_siswa: parseInt(id_siswa),
+          mata_pelajaran: {
+            id_mata_pelajaran: mataPelajaranDetail.id_mata_pelajaran,
+            nama_mata_pelajaran: mataPelajaranDetail.nama_mata_pelajaran,
+            kode_mata_pelajaran: mataPelajaranDetail.kode_mata_pelajaran,
+            deskripsi_mata_pelajaran:
+              mataPelajaranDetail.deskripsi_mata_pelajaran,
+            pengajar: mataPelajaranDetail.guru.nama_guru,
+          },
+        },
       });
     } catch (error) {
-      res.status(400).send(error.message);
+      console.error(error);
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   },
 };

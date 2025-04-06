@@ -27,11 +27,5 @@ router.delete(
   isGuruOrAdmin,
   matapelajaranController.delete,
 );
-router.patch(
-  "/:id",
-  authenticateToken,
-  isGuruOrAdmin,
-  matapelajaranController.patch,
-);
 
 module.exports = router;

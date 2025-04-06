@@ -5,11 +5,7 @@ const { parse } = require("dotenv");
 const guruController = {
   getAll: async (req, res) => {
     try {
-      const gurus = await prisma.guru.findMany({
-        include: {
-          kelas: true,
-        },
-      });
+      const gurus = await prisma.guru.findMany();
       res.json({
         status: 200,
         data: gurus,
@@ -38,7 +34,7 @@ const guruController = {
   },
 
   create: async (req, res) => {
-    const { username, password, nama_guru, nip, id_kelas } = req.body;
+    const { username, password, nama_guru, nip, id_kelas, email } = req.body;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -49,14 +45,9 @@ const guruController = {
             username,
             password: hashedPassword,
             role: "GURU",
+            email,
           },
         });
-
-        // const idKelas = await prisma.kelas.findUnique({
-        //   where: {
-        //     id_kelas: req.body.id_kelas,
-        //   },
-        // });
 
         const guru = await prisma.guru.create({
           data: {
@@ -64,6 +55,7 @@ const guruController = {
             nip,
             user_id: user.id,
             username,
+            email,
           },
         });
 
