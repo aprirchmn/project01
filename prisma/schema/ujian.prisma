@@ -3,7 +3,7 @@ model ujian {
   id_mata_pelajaran Int
   id_guru           Int
   tanggal_ujian     DateTime
-  durasi_ujian      Int
+  durasi_ujian      String
   deskripsi_ujian   String
   status_ujian      String
   nama_ujian        String
@@ -14,10 +14,10 @@ model ujian {
   accessCamera      Boolean   @default(false)
 
   // Relations
-  mata_pelajaran mata_pelajaran   @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
-  guru           guru             @relation(fields: [id_guru], references: [id_guru])
-  soal_essay     soal_essay[]?
-  soal_multiple  soal_multiple[]?
+  mata_pelajaran mata_pelajaran  @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
+  guru           guru            @relation(fields: [id_guru], references: [id_guru])
+  soal_essay     soal_essay[]
+  soal_multiple  soal_multiple[]
   hasil_ujian    hasil_ujian[]
   jawaban        jawaban[]
 }

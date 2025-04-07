@@ -43,6 +43,7 @@ const matapelajaranController = {
           },
           ujian: {
             select: {
+              id_ujian: true,
               nama_ujian: true,
               tanggal_ujian: true,
               durasi_ujian: true,

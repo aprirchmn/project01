@@ -30,26 +30,17 @@ const ujianController = {
         return res.status(404).json({ message: "Ujian tidak ditemukan" });
       }
 
-      // Filter soal berdasarkan tipe ujian
-      // if (ujian.tipe_ujian === "MULTIPLE") {
-      //   // Jika ujian tipe multiple choice, kita kosongkan soal essay
-      //   ujian.soal_essays = [];
-      //   // Jika konfigurasi acak aktif, acak urutan soal multiple
-      //   if (ujian.acak_soal) {
-      //     ujian.soal_multiples = ujian.soal_multiples.sort(
-      //       () => Math.random() - 0.5,
-      //     );
-      //   }
-      // } else if (ujian.tipe_ujian === "ESSAY") {
-      //   // Jika ujian tipe essay, kosongkan soal multiple choice
-      //   ujian.soal_multiples = [];
-      //   // Jika konfigurasi acak aktif, acak urutan soal essay
-      //   if (ujian.acak_soal) {
-      //     ujian.soal_essays = ujian.soal_essays.sort(() => Math.random() - 0.5);
-      //   }
-      // }
+      if (ujian.tipe_ujian === "MULTIPLE") {
+        delete ujian.soal_essay;
+      } else if (ujian.tipe_ujian === "ESSAY") {
+        delete ujian.soal_multiple;
+      }
 
-      res.json(ujian);
+      res.json({
+        status: 200,
+        message: "Berhasil Mendapatkan Data",
+        data: ujian,
+      });
     } catch (error) {
       res.status(400).send(error.message);
     }
