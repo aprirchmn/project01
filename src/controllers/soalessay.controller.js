@@ -34,7 +34,7 @@ const soalessayController = {
       const soalessay = await prisma.soal_essay.create({
         data: {
           id_mata_pelajaran: newSoalessayData.id_mata_pelajaran,
-          id_jenis_ujian: newSoalessayData.id_jenis_ujian,
+          id_ujian: newSoalessayData.id_ujian,
           pertanyaan: newSoalessayData.pertanyaan,
           kunci_jawaban: newSoalessayData.kunci_jawaban,
           bobot: newSoalessayData.bobot,

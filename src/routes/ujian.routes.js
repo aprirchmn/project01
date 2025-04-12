@@ -8,7 +8,7 @@ const {
 const router = express.Router();
 
 router.get("/", authenticateToken, ujianController.getAll);
-router.get("/:id", authenticateToken, isGuruOrAdmin, ujianController.getById);
+router.get("/:id", authenticateToken, ujianController.getById);
 router.post("/", authenticateToken, isGuruOrAdmin, ujianController.create);
 router.put("/:id", authenticateToken, isGuruOrAdmin, ujianController.update);
 router.patch("/:id", authenticateToken, isGuruOrAdmin, ujianController.patch);

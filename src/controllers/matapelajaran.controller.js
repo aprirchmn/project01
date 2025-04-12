@@ -4,7 +4,90 @@ const crypto = require("crypto");
 const matapelajaranController = {
   getAll: async (req, res) => {
     try {
-      const matapelajarans = await prisma.mata_pelajaran.findMany();
+      const userId = req.user.id;
+      const userRole = req.user.role;
+
+      let matapelajarans;
+
+      if (userRole === "SUPER_ADMIN") {
+        matapelajarans = await prisma.mata_pelajaran.findMany({
+          include: {
+            guru: {
+              select: {
+                nama_guru: true,
+                id_guru: true,
+              },
+            },
+            // siswa: {
+            //   select: {
+            //     _count: true,
+            //   },
+            // },
+          },
+        });
+      } else if (userRole === "SISWA") {
+        const siswa = await prisma.siswa.findUnique({
+          where: { user_id: userId },
+        });
+
+        if (!siswa) {
+          return res.status(404).json({
+            status: 404,
+            message: "Data siswa tidak ditemukan",
+          });
+        }
+
+        const mataPelajaranSiswa = await prisma.mata_pelajaran_siswa.findMany({
+          where: { id_siswa: siswa.id_siswa },
+          include: {
+            mata_pelajaran: {
+              include: {
+                guru: {
+                  select: {
+                    nama_guru: true,
+                    id_guru: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        matapelajarans = mataPelajaranSiswa.map((mps) => mps.mata_pelajaran);
+      } else if (userRole === "GURU") {
+        const guru = await prisma.guru.findUnique({
+          where: { user_id: userId },
+        });
+
+        if (!guru) {
+          return res.status(404).json({
+            status: 404,
+            message: "Data guru tidak ditemukan",
+          });
+        }
+
+        matapelajarans = await prisma.mata_pelajaran.findMany({
+          where: { id_guru: guru.id_guru },
+          include: {
+            siswa: {
+              include: {
+                siswa: {
+                  select: {
+                    nama_siswa: true,
+                    nis: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+      } else {
+        return res.status(403).json({
+          status: 403,
+          message: "Anda tidak memiliki akses untuk melihat data ini",
+        });
+      }
 
       res.json({
         status: 200,
@@ -12,7 +95,12 @@ const matapelajaranController = {
         data: matapelajarans,
       });
     } catch (error) {
-      res.status(500).send(error.message);
+      console.error("Error:", error);
+      res.status(500).json({
+        status: 500,
+        message: "Terjadi kesalahan pada server",
+        error: error.message,
+      });
     }
   },
 

@@ -1,17 +1,17 @@
 model ujian {
-  id_ujian          Int       @id @default(autoincrement())
+  id_ujian          Int         @id @default(autoincrement())
   id_mata_pelajaran Int
   id_guru           Int
   tanggal_ujian     DateTime
   durasi_ujian      String
   deskripsi_ujian   String
-  status_ujian      String
+  status_ujian      StatusUjian
   nama_ujian        String
   tipe_ujian        TipeUjian
-  acak_soal         Boolean   @default(false)
-  tampilkan_nilai   Boolean   @default(false)
-  tampilkan_jawaban Boolean   @default(false)
-  accessCamera      Boolean   @default(false)
+  acak_soal         Boolean     @default(false)
+  tampilkan_nilai   Boolean     @default(false)
+  tampilkan_jawaban Boolean     @default(false)
+  accessCamera      Boolean     @default(false)
 
   // Relations
   mata_pelajaran mata_pelajaran  @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
