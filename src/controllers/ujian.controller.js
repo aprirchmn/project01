@@ -33,6 +33,20 @@ const ujianController = {
       }
 
       if (user.role === "SISWA") {
+        // 👉 Ambil status pengerjaan dari hasil_ujian
+        const hasil = await prisma.hasil_ujian.findUnique({
+          where: {
+            id_siswa_id_ujian: {
+              id_siswa: user.profileId,
+              id_ujian: ujianId,
+            },
+          },
+          select: {
+            is_selesai: true,
+            waktu_selesai: true, // optional kalau mau tampilkan juga
+          },
+        });
+
         const soalMultiple = ujian.soal_multiple.map((soal) => ({
           id_soal_multiple: soal.id_soal_multiple,
           pertanyaan: soal.pertanyaan,
@@ -65,6 +79,8 @@ const ujianController = {
             tampilkan_nilai: ujian.tampilkan_nilai,
             tampilkan_jawaban: ujian.tampilkan_jawaban,
             accessCamera: ujian.accessCamera,
+            is_selesai: hasil?.is_selesai || false, // default false kalau belum ada
+            waktu_selesai: hasil?.waktu_selesai || null,
             ...dataSoal,
           },
         });
@@ -248,7 +264,6 @@ const ujianController = {
     try {
       const ujianId = parseInt(req.params.id);
 
-      // Check if ujian exists
       const existingUjian = await prisma.ujian.findUnique({
         where: { id_ujian: ujianId },
       });
@@ -291,13 +306,20 @@ const ujianController = {
       const existing = await prisma.hasil_ujian.findUnique({
         where: {
           id_siswa_id_ujian: {
-            id_siswa: user.id,
+            id_siswa: user.profileId,
             id_ujian,
           },
         },
       });
 
       if (existing) {
+        if (existing.is_selesai) {
+          return res.status(403).json({
+            message: "Ujian sudah diselesaikan dan tidak bisa diulang",
+            alreadyFinished: true,
+          });
+        }
+
         return res.status(200).json({
           message: "Ujian sudah dimulai sebelumnya",
           alreadyStarted: true,
@@ -306,7 +328,7 @@ const ujianController = {
 
       await prisma.hasil_ujian.create({
         data: {
-          id_siswa: user.id,
+          id_siswa: user.profileId,
           id_ujian,
         },
       });
@@ -319,6 +341,76 @@ const ujianController = {
       res
         .status(500)
         .json({ message: "Terjadi kesalahan", error: error.message });
+    }
+  },
+
+  submitUjian: async (req, res) => {
+    try {
+      const { id_siswa, id_ujian } = req.body;
+
+      if (!id_siswa || !id_ujian) {
+        return res
+          .status(400)
+          .json({ message: "id_siswa dan id_ujian wajib diisi" });
+      }
+
+      const hasilUjian = await prisma.hasil_ujian.findFirst({
+        where: { id_siswa, id_ujian },
+      });
+
+      if (!hasilUjian) {
+        return res.status(404).json({ message: "Hasil ujian tidak ditemukan" });
+      }
+
+      if (hasilUjian.is_selesai) {
+        return res
+          .status(400)
+          .json({ message: "Ujian sudah diselesaikan sebelumnya" });
+      }
+
+      // Hitung ulang nilai
+      const totalSkorMultiple = await prisma.jawaban.aggregate({
+        where: {
+          id_hasil_ujian: hasilUjian.id_hasil_ujian,
+          id_soal_multiple: { not: null },
+        },
+        _sum: { skor: true },
+      });
+
+      const totalSkorEssay = await prisma.jawaban.aggregate({
+        where: {
+          id_hasil_ujian: hasilUjian.id_hasil_ujian,
+          id_soal_essay: { not: null },
+        },
+        _sum: { skor: true },
+      });
+
+      const nilai_multiple = totalSkorMultiple._sum.skor || 0;
+      const nilai_essay = totalSkorEssay._sum.skor || 0;
+      const nilai_total = nilai_multiple + nilai_essay;
+
+      await prisma.hasil_ujian.update({
+        where: { id_hasil_ujian: hasilUjian.id_hasil_ujian },
+        data: {
+          nilai_multiple,
+          nilai_essay,
+          nilai_total,
+          is_selesai: true,
+          waktu_selesai: new Date(),
+        },
+      });
+
+      return res.status(200).json({
+        message: "Ujian berhasil disubmit",
+        data: {
+          nilai_multiple,
+          nilai_essay,
+          nilai_total,
+          waktu_selesai: new Date(),
+        },
+      });
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
     }
   },
 };

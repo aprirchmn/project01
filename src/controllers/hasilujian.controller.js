@@ -53,7 +53,9 @@ const hasilujianController = {
       const hasilujianData = req.body;
 
       if (!(hasilujianData.id_siswa && hasilujianData.id_ujian)) {
-        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
+        return res
+          .status(400)
+          .json({ message: "Tidak boleh ada data yang kosong" });
       }
 
       const existingHasilujian = await prisma.hasil_ujian.findUnique({
@@ -105,8 +107,12 @@ const hasilujianController = {
         data: {
           ...(hasilujianData.id_ujian && { id_ujian: hasilujianData.id_ujian }),
           ...(hasilujianData.id_siswa && { id_siswa: hasilujianData.id_siswa }),
-          ...(hasilujianData.nilai_multiple !== undefined && { nilai_multiple: hasilujianData.nilai_multiple }),
-          ...(hasilujianData.nilai_essay !== undefined && { nilai_essay: hasilujianData.nilai_essay }),
+          ...(hasilujianData.nilai_multiple !== undefined && {
+            nilai_multiple: hasilujianData.nilai_multiple,
+          }),
+          ...(hasilujianData.nilai_essay !== undefined && {
+            nilai_essay: hasilujianData.nilai_essay,
+          }),
         },
       });
 
@@ -138,6 +144,77 @@ const hasilujianController = {
       res.status(200).json({ message: "Hasil Ujian berhasil dihapus" });
     } catch (error) {
       res.status(400).send(error.message);
+    }
+  },
+
+  getHasilUjian: async (req, res) => {
+    try {
+      const hasil = await prisma.hasil_ujian.findUnique({
+        where: { id_hasil_ujian: parseInt(req.params.id) },
+        include: {
+          siswa: true,
+          ujian: true,
+        },
+      });
+
+      if (!hasil)
+        return res.status(404).json({ message: "Hasil tidak ditemukan" });
+
+      res.json(hasil);
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  },
+
+  reviewJawaban: async (req, res) => {
+    try {
+      const { idUjian, idSiswa } = req.params;
+
+      const ujian = await prisma.ujian.findUnique({
+        where: {
+          id_ujian: parseInt(idUjian),
+        },
+        select: {
+          tipe_ujian: true,
+        },
+      });
+
+      if (!ujian) {
+        return res.status(404).json({ message: "Ujian tidak ditemukan" });
+      }
+
+      let jawaban = [];
+
+      if (ujian.tipe_ujian === "ESSAY") {
+        jawaban = await prisma.jawaban.findMany({
+          where: {
+            id_ujian: parseInt(idUjian),
+            id_siswa: parseInt(idSiswa),
+          },
+          include: {
+            soal_essay: true,
+          },
+        });
+      } else if (ujian.tipe_ujian === "MULTIPLE") {
+        jawaban = await prisma.jawaban.findMany({
+          where: {
+            id_ujian: parseInt(idUjian),
+            id_siswa: parseInt(idSiswa),
+          },
+          include: {
+            soal_multiple: true,
+          },
+        });
+      }
+
+      res.json({
+        message: "Berhasil mendapatkan data",
+        success: 200,
+        tipe_ujian: ujian.tipe_ujian,
+        data: jawaban,
+      });
+    } catch (error) {
+      res.status(500).send(error.message);
     }
   },
 };
