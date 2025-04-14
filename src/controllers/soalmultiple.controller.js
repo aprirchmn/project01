@@ -45,7 +45,6 @@ const soalmultipleController = {
       const soalmultiple = await prisma.soal_multiple.create({
         data: {
           id_mata_pelajaran: newSoalmultipleData.id_mata_pelajaran,
-          id_jenis_ujian: newSoalmultipleData.id_jenis_ujian,
           id_ujian: newSoalmultipleData.id_ujian,
           pertanyaan: newSoalmultipleData.pertanyaan,
           pilihan_a: newSoalmultipleData.pilihan_a,
@@ -107,7 +106,6 @@ const soalmultipleController = {
         },
         data: {
           id_mata_pelajaran: soalmultipleData.id_mata_pelajaran,
-          id_jenis_ujian: soalmultipleData.id_jenis_ujian,
           pertanyaan: soalmultipleData.pertanyaan,
           pilihan_a: soalmultipleData.pilihan_a,
           pilihan_b: soalmultipleData.pilihan_b,

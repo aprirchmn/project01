@@ -1,12 +1,39 @@
+// Hasil ujian (exam results) and jawaban (answers) models
+
 model hasil_ujian {
-  id_hasil_ujian  Int       @id @default(autoincrement())
-  id_siswa        Int
-  id_ujian        Int
-  nilai_multiple  Float     @default(0)
-  nilai_essay     Float     @default(0)
-  siswa           siswa     @relation(fields: [id_siswa], references: [id_siswa])
-  ujian           ujian     @relation(fields: [id_ujian], references: [id_ujian])
-  jawaban         jawaban[]
+  id_hasil_ujian Int   @id @default(autoincrement())
+  id_siswa       Int
+  id_ujian       Int
+  nilai_multiple Float @default(0)
+  nilai_essay    Float @default(0)
+  nilai_total    Float @default(0)
+
+  is_selesai    Boolean   @default(false)
+  waktu_selesai DateTime?
+
+  // Relations
+  siswa   siswa     @relation(fields: [id_siswa], references: [id_siswa])
+  ujian   ujian     @relation(fields: [id_ujian], references: [id_ujian])
+  jawaban jawaban[]
 
   @@unique([id_siswa, id_ujian])
+}
+
+model jawaban {
+  id_jawaban       Int    @id @default(autoincrement())
+  id_hasil_ujian   Int
+  id_ujian         Int
+  jawaban_murid    String
+  skor             Float
+  cosine           Float?
+  id_soal_essay    Int?
+  id_soal_multiple Int?
+  id_siswa         Int
+
+  // Relations
+  hasil_ujian   hasil_ujian    @relation(fields: [id_hasil_ujian], references: [id_hasil_ujian])
+  ujian         ujian          @relation(fields: [id_ujian], references: [id_ujian])
+  siswa         siswa          @relation(fields: [id_siswa], references: [id_siswa])
+  soal_essay    soal_essay?    @relation(fields: [id_soal_essay], references: [id_soal_essay])
+  soal_multiple soal_multiple? @relation(fields: [id_soal_multiple], references: [id_soal_multiple])
 }

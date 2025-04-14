@@ -5,8 +5,8 @@ const ujianController = {
     try {
       const ujians = await prisma.ujian.findMany({
         include: {
-          soal_essays: true,
-          soal_multiples: true,
+          soal_essay: true,
+          soal_multiple: true,
         },
       });
       res.json(ujians);
@@ -18,11 +18,13 @@ const ujianController = {
   getById: async (req, res) => {
     try {
       const ujianId = parseInt(req.params.id);
+      const user = req.user;
+
       const ujian = await prisma.ujian.findUnique({
         where: { id_ujian: ujianId },
         include: {
-          soal_essays: true,
-          soal_multiples: true,
+          soal_essay: true,
+          soal_multiple: true,
         },
       });
 
@@ -30,24 +32,75 @@ const ujianController = {
         return res.status(404).json({ message: "Ujian tidak ditemukan" });
       }
 
-      // Filter soal berdasarkan tipe ujian
-      if (ujian.tipe_ujian === "MULTIPLE") {
-        // Jika ujian tipe multiple choice, kita kosongkan soal essay
-        ujian.soal_essays = [];
-        // Jika konfigurasi acak aktif, acak urutan soal multiple
-        if (ujian.acak_soal) {
-          ujian.soal_multiples = ujian.soal_multiples.sort(() => Math.random() - 0.5);
-        }
-      } else if (ujian.tipe_ujian === "ESSAY") {
-        // Jika ujian tipe essay, kosongkan soal multiple choice
-        ujian.soal_multiples = [];
-        // Jika konfigurasi acak aktif, acak urutan soal essay
-        if (ujian.acak_soal) {
-          ujian.soal_essays = ujian.soal_essays.sort(() => Math.random() - 0.5);
-        }
+      if (user.role === "SISWA") {
+        // 👉 Ambil status pengerjaan dari hasil_ujian
+        const hasil = await prisma.hasil_ujian.findUnique({
+          where: {
+            id_siswa_id_ujian: {
+              id_siswa: user.profileId,
+              id_ujian: ujianId,
+            },
+          },
+          select: {
+            is_selesai: true,
+            waktu_selesai: true, // optional kalau mau tampilkan juga
+          },
+        });
+
+        const soalMultiple = ujian.soal_multiple.map((soal) => ({
+          id_soal_multiple: soal.id_soal_multiple,
+          pertanyaan: soal.pertanyaan,
+          pilihan_a: soal.pilihan_a,
+          pilihan_b: soal.pilihan_b,
+          pilihan_c: soal.pilihan_c,
+          pilihan_d: soal.pilihan_d,
+          pilihan_e: soal.pilihan_e,
+        }));
+
+        const soalEssay = ujian.soal_essay.map((soal) => ({
+          id_soal_essay: soal.id_soal_essay,
+          pertanyaan: soal.pertanyaan,
+        }));
+
+        const dataSoal =
+          ujian.tipe_ujian === "MULTIPLE"
+            ? { soal_multiple: soalMultiple }
+            : { soal_essay: soalEssay };
+
+        return res.json({
+          status: 200,
+          message: "Berhasil Mendapatkan Soal",
+          data: {
+            id_ujian: ujian.id_ujian,
+            tipe_ujian: ujian.tipe_ujian,
+            tanggal_ujian: ujian.tanggal_ujian,
+            durasi_ujian: ujian.durasi_ujian,
+            acak_soal: ujian.acak_soal,
+            tampilkan_nilai: ujian.tampilkan_nilai,
+            tampilkan_jawaban: ujian.tampilkan_jawaban,
+            accessCamera: ujian.accessCamera,
+            is_selesai: hasil?.is_selesai || false, // default false kalau belum ada
+            waktu_selesai: hasil?.waktu_selesai || null,
+            ...dataSoal,
+          },
+        });
       }
 
-      res.json(ujian);
+      if (user.role === "GURU" || user.role === "SUPER_ADMIN") {
+        if (ujian.tipe_ujian === "MULTIPLE") {
+          delete ujian.soal_essay;
+        } else if (ujian.tipe_ujian === "ESSAY") {
+          delete ujian.soal_multiple;
+        }
+
+        return res.json({
+          status: 200,
+          message: "Berhasil Mendapatkan Data",
+          data: ujian,
+        });
+      }
+
+      return res.status(403).json({ message: "Akses ditolak" });
     } catch (error) {
       res.status(400).send(error.message);
     }
@@ -55,112 +108,121 @@ const ujianController = {
 
   create: async (req, res) => {
     try {
-      const newUjianData = req.body;
+      const {
+        id_mata_pelajaran,
+        id_guru,
+        tanggal_ujian,
+        durasi_ujian,
+        deskripsi_ujian,
+        status_ujian,
+        nama_ujian,
+        tipe_ujian,
+        acak_soal,
+        tampilkan_nilai,
+        tampilkan_jawaban,
+        accessCamera,
+        soal_essay,
+        soal_multiple,
+      } = req.body;
+
       const ujian = await prisma.ujian.create({
         data: {
-          id_mata_pelajaran: newUjianData.id_mata_pelajaran,
-          id_guru: newUjianData.id_guru,
-          // id_kelas: newUjianData.id_kelas,
-          id_jenis_ujian: newUjianData.id_jenis_ujian,
-          tanggal_ujian: newUjianData.tanggal_ujian,
-          durasi_ujian: newUjianData.durasi_ujian,
-          deskripsi_ujian: newUjianData.deskripsi_ujian,
-          status_ujian: newUjianData.status_ujian,
-          status_publish: newUjianData.status_publish,
-          id_siswa: newUjianData.id_siswa,
-          nama_ujian: newUjianData.nama_ujian,
-          tipe_ujian: newUjianData.tipe_ujian,
-          acak_soal: newUjianData.acak_soal,
-          tampilkan_nilai: newUjianData.tampilkan_nilai,
-          tampilkan_jawaban: newUjianData.tampilkan_jawaban,
-          accessCamera: newUjianData.accessCamera,
+          id_mata_pelajaran,
+          id_guru,
+          tanggal_ujian,
+          durasi_ujian,
+          deskripsi_ujian,
+          status_ujian: status_ujian,
+          nama_ujian,
+          tipe_ujian,
+          acak_soal: acak_soal || false,
+          tampilkan_nilai: tampilkan_nilai || false,
+          tampilkan_jawaban: tampilkan_jawaban || false,
+          accessCamera: accessCamera || false,
+          soal_essay: {
+            create: soal_essay || [],
+          },
+          soal_multiple: {
+            create: soal_multiple || [],
+          },
         },
         include: {
-          soal_essays: true,
-          soal_multiples: true,
+          mata_pelajaran: true,
+          guru: true,
+          soal_essay: true,
+          soal_multiple: true,
         },
       });
 
       res.status(201).json({
+        success: true,
+        message: "Ujian berhasil dibuat",
         data: ujian,
-        message: "Berhasil menambahkan Ujian",
       });
     } catch (error) {
-      res.status(400).send(error.message);
+      console.error(error);
+      res.status(500).json({
+        success: false,
+        message: "Gagal membuat ujian",
+        error: error.message,
+      });
     }
   },
 
   update: async (req, res) => {
     try {
-      const ujianId = parseInt(req.params.id);
-      const ujianData = req.body;
-
-      if (
-        !(
-          ujianData.id_mata_pelajaran &&
-          ujianData.id_guru &&
-          // ujianData.id_kelas &&
-          ujianData.id_jenis_ujian &&
-          ujianData.tanggal_ujian &&
-          ujianData.durasi_ujian &&
-          ujianData.deskripsi_ujian &&
-          ujianData.status_ujian &&
-          ujianData.status_publish &&
-          ujianData.id_siswa &&
-          ujianData.nama_ujian &&
-          ujianData.tipe_ujian &&
-          ujianData.acak_soal !== undefined &&
-          ujianData.tampilkan_nilai !== undefined &&
-          ujianData.tampilkan_jawaban !== undefined &&
-          ujianData.accessCamera !== undefined
-        )
-      ) {
-        return res.status(400).json({ message: "Tidak boleh ada data yang kosong" });
-      }
-
-      // Check if ujian exists
-      const existingUjian = await prisma.ujian.findUnique({
-        where: { id_ujian: ujianId },
-      });
-
-      if (!existingUjian) {
-        return res.status(404).json({ message: "Ujian tidak ditemukan" });
-      }
+      const { id } = req.params;
+      const {
+        id_mata_pelajaran,
+        id_guru,
+        tanggal_ujian,
+        durasi_ujian,
+        deskripsi_ujian,
+        status_ujian,
+        nama_ujian,
+        tipe_ujian,
+        acak_soal,
+        tampilkan_nilai,
+        tampilkan_jawaban,
+        accessCamera,
+      } = req.body;
 
       const ujian = await prisma.ujian.update({
         where: {
-          id_ujian: ujianId,
+          id_ujian: parseInt(id),
         },
         data: {
-          id_mata_pelajaran: ujianData.id_mata_pelajaran,
-          id_guru: ujianData.id_guru,
-          // id_kelas: ujianData.id_kelas,
-          id_jenis_ujian: ujianData.id_jenis_ujian,
-          tanggal_ujian: ujianData.tanggal_ujian,
-          durasi_ujian: ujianData.durasi_ujian,
-          deskripsi_ujian: ujianData.deskripsi_ujian,
-          status_ujian: ujianData.status_ujian,
-          status_publish: ujianData.status_publish,
-          id_siswa: ujianData.id_siswa,
-          nama_ujian: ujianData.nama_ujian,
-          tipe_ujian: ujianData.tipe_ujian,
-          acak_soal: ujianData.acak_soal,
-          tampilkan_nilai: ujianData.tampilkan_nilai,
-          tampilkan_jawaban: ujianData.tampilkan_jawaban,
-          accessCamera: ujianData.accessCamera,
+          id_mata_pelajaran: id_mata_pelajaran,
+          id_guru: id_guru,
+          tanggal_ujian: tanggal_ujian ? new Date(tanggal_ujian) : undefined,
+          durasi_ujian: durasi_ujian,
+          deskripsi_ujian: deskripsi_ujian,
+          status_ujian: status_ujian,
+          nama_ujian: nama_ujian,
+          tipe_ujian: tipe_ujian,
+          acak_soal: acak_soal,
+          tampilkan_nilai: tampilkan_nilai,
+          tampilkan_jawaban: tampilkan_jawaban,
+          accessCamera: accessCamera,
         },
         include: {
-          soal_essays: true,
-          soal_multiples: true,
+          mata_pelajaran: true,
+          guru: true,
         },
       });
 
-      res.json({
+      res.status(200).json({
+        success: true,
+        message: "Ujian berhasil diperbarui",
         data: ujian,
-        message: "Berhasil mengubah Ujian",
       });
     } catch (error) {
-      res.status(400).send(error.message);
+      console.error(error);
+      res.status(500).json({
+        success: false,
+        message: "Gagal memperbarui ujian",
+        error: error.message,
+      });
     }
   },
 
@@ -202,7 +264,6 @@ const ujianController = {
     try {
       const ujianId = parseInt(req.params.id);
 
-      // Check if ujian exists
       const existingUjian = await prisma.ujian.findUnique({
         where: { id_ujian: ujianId },
       });
@@ -220,6 +281,136 @@ const ujianController = {
       res.status(200).json({ message: "Ujian berhasil dihapus" });
     } catch (error) {
       res.status(400).send(error.message);
+    }
+  },
+
+  startUjian: async (req, res) => {
+    try {
+      const id_ujian = parseInt(req.params.id_ujian);
+      const user = req.user;
+
+      if (user.role !== "SISWA") {
+        return res
+          .status(403)
+          .json({ message: "Hanya siswa yang bisa memulai ujian" });
+      }
+
+      const ujian = await prisma.ujian.findUnique({
+        where: { id_ujian },
+      });
+
+      if (!ujian) {
+        return res.status(404).json({ message: "Ujian tidak ditemukan" });
+      }
+
+      const existing = await prisma.hasil_ujian.findUnique({
+        where: {
+          id_siswa_id_ujian: {
+            id_siswa: user.profileId,
+            id_ujian,
+          },
+        },
+      });
+
+      if (existing) {
+        if (existing.is_selesai) {
+          return res.status(403).json({
+            message: "Ujian sudah diselesaikan dan tidak bisa diulang",
+            alreadyFinished: true,
+          });
+        }
+
+        return res.status(200).json({
+          message: "Ujian sudah dimulai sebelumnya",
+          alreadyStarted: true,
+        });
+      }
+
+      await prisma.hasil_ujian.create({
+        data: {
+          id_siswa: user.profileId,
+          id_ujian,
+        },
+      });
+
+      return res.status(201).json({
+        message: "Ujian berhasil dimulai",
+        alreadyStarted: false,
+      });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Terjadi kesalahan", error: error.message });
+    }
+  },
+
+  submitUjian: async (req, res) => {
+    try {
+      const { id_siswa, id_ujian } = req.body;
+
+      if (!id_siswa || !id_ujian) {
+        return res
+          .status(400)
+          .json({ message: "id_siswa dan id_ujian wajib diisi" });
+      }
+
+      const hasilUjian = await prisma.hasil_ujian.findFirst({
+        where: { id_siswa, id_ujian },
+      });
+
+      if (!hasilUjian) {
+        return res.status(404).json({ message: "Hasil ujian tidak ditemukan" });
+      }
+
+      if (hasilUjian.is_selesai) {
+        return res
+          .status(400)
+          .json({ message: "Ujian sudah diselesaikan sebelumnya" });
+      }
+
+      // Hitung ulang nilai
+      const totalSkorMultiple = await prisma.jawaban.aggregate({
+        where: {
+          id_hasil_ujian: hasilUjian.id_hasil_ujian,
+          id_soal_multiple: { not: null },
+        },
+        _sum: { skor: true },
+      });
+
+      const totalSkorEssay = await prisma.jawaban.aggregate({
+        where: {
+          id_hasil_ujian: hasilUjian.id_hasil_ujian,
+          id_soal_essay: { not: null },
+        },
+        _sum: { skor: true },
+      });
+
+      const nilai_multiple = totalSkorMultiple._sum.skor || 0;
+      const nilai_essay = totalSkorEssay._sum.skor || 0;
+      const nilai_total = nilai_multiple + nilai_essay;
+
+      await prisma.hasil_ujian.update({
+        where: { id_hasil_ujian: hasilUjian.id_hasil_ujian },
+        data: {
+          nilai_multiple,
+          nilai_essay,
+          nilai_total,
+          is_selesai: true,
+          waktu_selesai: new Date(),
+        },
+      });
+
+      return res.status(200).json({
+        message: "Ujian berhasil disubmit",
+        data: {
+          nilai_multiple,
+          nilai_essay,
+          nilai_total,
+          waktu_selesai: new Date(),
+        },
+      });
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
     }
   },
 };

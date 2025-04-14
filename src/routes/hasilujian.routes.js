@@ -34,4 +34,11 @@ router.delete(
   hasilujianController.delete,
 );
 
+router.get("/hasil/:id", authenticateToken, hasilujianController.getHasilUjian);
+router.get(
+  "/:idUjian/review/:idSiswa",
+  authenticateToken,
+  hasilujianController.reviewJawaban,
+);
+
 module.exports = router;

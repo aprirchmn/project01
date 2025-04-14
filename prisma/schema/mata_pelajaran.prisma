@@ -1,13 +1,15 @@
+// Mata Pelajaran (subject) model and relations
+
 model mata_pelajaran {
-  id_mata_pelajaran            Int             @id @default(autoincrement())
-  id_guru                      Int
-  nama_mata_pelajaran          String
-  kode_mata_pelajaran          String
-  deskripsi_mata_pelajaran     String
-  guru                         guru            @relation(fields: [id_guru], references: [id_guru])
-  siswa                        siswa[]
-  soal_essay                   soal_essay[]
-  soal_multiple                soal_multiple[]
-  ujian                        ujian[]
-  jawaban                      jawaban[]
+  id_mata_pelajaran        Int    @id @default(autoincrement())
+  nama_mata_pelajaran      String
+  kode_mata_pelajaran      String @unique
+  deskripsi_mata_pelajaran String
+  id_guru                  Int
+  guru                     guru   @relation(fields: [id_guru], references: [id_guru])
+
+  siswa         mata_pelajaran_siswa[]
+  ujian         ujian[]
+  soal_essay    soal_essay[]
+  soal_multiple soal_multiple[]
 }

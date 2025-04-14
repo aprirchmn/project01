@@ -1,18 +1,10 @@
 const prisma = require("../db");
 const bcrypt = require("bcrypt");
-const xlsx = require("xlsx");
-const fs = require("fs");
-const multer = require("multer");
-const path = require("path");
 
 const siswaController = {
   getAll: async (req, res) => {
     try {
-      const siswas = await prisma.siswa.findMany({
-        include: {
-          mata_pelajaran: true,
-        },
-      });
+      const siswas = await prisma.siswa.findMany();
       res.json({
         status: 200,
         message: "Success",
@@ -42,7 +34,8 @@ const siswaController = {
   },
 
   create: async (req, res) => {
-    const { username, password, nama_siswa, nis, id_mata_pelajaran } = req.body;
+    const { username, password, nama_siswa, nis, email, mata_pelajaran_ids } =
+      req.body;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -53,6 +46,7 @@ const siswaController = {
             username,
             password: hashedPassword,
             role: "SISWA",
+            ...(email && { email }),
           },
         });
 
@@ -60,7 +54,7 @@ const siswaController = {
           data: {
             nama_siswa,
             nis,
-            id_mata_pelajaran,
+            ...(email && { email }),
             user_id: user.id,
           },
         });
@@ -74,7 +68,7 @@ const siswaController = {
           id_siswa: result.siswa.id_siswa,
           nama_siswa: result.siswa.nama_siswa,
           nis: result.siswa.nis,
-          id_mata_pelajaran: result.siswa.id_mata_pelajaran,
+          email: result.siswa.email,
           username: result.user.username,
           role: result.user.role,
         },
@@ -82,15 +76,17 @@ const siswaController = {
     } catch (error) {
       console.error(error);
       if (error.code === "P2002") {
-        return res.status(400).json({ message: "Username atau NIS sudah digunakan" });
+        return res
+          .status(400)
+          .json({ message: "Username, NIS, atau email sudah digunakan" });
       }
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   },
 
   update: async (req, res) => {
     const id_siswa = req.params.id;
-    const { nama_siswa, nis, id_mata_pelajaran, username, password } = req.body;
+    const { nama_siswa, nis, id_kelas, username, password, email } = req.body;
 
     try {
       const result = await prisma.$transaction(async (prisma) => {
@@ -107,11 +103,15 @@ const siswaController = {
           data: {
             nama_siswa,
             nis,
-            id_mata_pelajaran,
+            id_kelas,
+            ...(email && { email }), // optional update
           },
         });
 
-        const updateUserData = { username };
+        const updateUserData = {
+          username,
+          ...(email && { email }), // optional update
+        };
 
         if (password) {
           const hashedPassword = await bcrypt.hash(password, 10);
@@ -132,7 +132,8 @@ const siswaController = {
           id_siswa: result.updatedSiswa.id_siswa,
           nama_siswa: result.updatedSiswa.nama_siswa,
           nis: result.updatedSiswa.nis,
-          id_mata_pelajaran: result.updatedSiswa.id_mata_pelajaran,
+          id_kelas: result.updatedSiswa.id_kelas,
+          email: result.updatedSiswa.email,
           username: result.updatedUser.username,
           role: result.updatedUser.role,
         },
@@ -140,9 +141,11 @@ const siswaController = {
     } catch (error) {
       console.error(error);
       if (error.code === "P2002") {
-        return res.status(400).json({ message: "Username atau NIS sudah digunakan" });
+        return res.status(400).json({
+          message: "Username, NIS, atau email sudah digunakan",
+        });
       }
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   },
 
@@ -150,7 +153,6 @@ const siswaController = {
     try {
       const siswaId = parseInt(req.params.id);
 
-      // Check if siswa exists
       const existingSiswa = await prisma.siswa.findUnique({
         where: {
           id_siswa: siswaId,
@@ -161,145 +163,113 @@ const siswaController = {
         return res.status(404).json({ message: "Data Murid tidak ditemukan" });
       }
 
-      await prisma.siswa.delete({
-        where: {
-          id_siswa: siswaId,
-        },
+      await prisma.$transaction(async (prisma) => {
+        await prisma.mata_pelajaran_siswa.deleteMany({
+          where: {
+            id_siswa: siswaId,
+          },
+        });
+
+        await prisma.hasil_ujian.deleteMany({
+          where: {
+            id_siswa: siswaId,
+          },
+        });
+
+        await prisma.jawaban.deleteMany({
+          where: {
+            id_siswa: siswaId,
+          },
+        });
+
+        await prisma.siswa.delete({
+          where: {
+            id_siswa: siswaId,
+          },
+        });
       });
 
       res.status(200).json({ message: "Akun Murid berhasil dihapus" });
     } catch (error) {
+      console.error("Error deleting student:", error);
       res.status(400).send(error.message);
     }
   },
 
-  patch: async (req, res) => {
-    try {
-      const siswaId = parseInt(req.params.id);
-      const siswaData = req.body;
+  join: async (req, res) => {
+    const { id_siswa } = req.params;
+    const { kode_mata_pelajaran } = req.body;
 
-      // Check if siswa exists
-      const existingSiswa = await prisma.siswa.findUnique({
-        where: {
-          id_siswa: siswaId,
-        },
+    try {
+      const siswa = await prisma.siswa.findUnique({
+        where: { id_siswa: parseInt(id_siswa) },
       });
 
-      if (!existingSiswa) {
-        return res.status(404).json({ message: "Data Murid tidak ditemukan" });
+      if (!siswa) {
+        return res.status(404).json({ message: "Siswa tidak ditemukan" });
       }
 
-      const siswa = await prisma.siswa.update({
-        where: {
-          id_siswa: siswaId,
-        },
-        data: siswaData,
+      const mataPelajaran = await prisma.mata_pelajaran.findUnique({
+        where: { kode_mata_pelajaran },
       });
 
-      res.json({
-        data: siswa,
-        message: "Berhasil mengedit data Murid",
+      if (!mataPelajaran) {
+        return res
+          .status(404)
+          .json({ message: "Mata pelajaran tidak ditemukan" });
+      }
+
+      const existingEnrollment = await prisma.mata_pelajaran_siswa.findUnique({
+        where: {
+          id_mata_pelajaran_id_siswa: {
+            id_siswa: parseInt(id_siswa),
+            id_mata_pelajaran: mataPelajaran.id_mata_pelajaran,
+          },
+        },
+      });
+
+      if (existingEnrollment) {
+        return res
+          .status(400)
+          .json({ message: "Siswa sudah terdaftar di mata pelajaran ini" });
+      }
+
+      const enrollment = await prisma.mata_pelajaran_siswa.create({
+        data: {
+          id_siswa: parseInt(id_siswa),
+          id_mata_pelajaran: mataPelajaran.id_mata_pelajaran,
+        },
+      });
+
+      const mataPelajaranDetail = await prisma.mata_pelajaran.findUnique({
+        where: { id_mata_pelajaran: mataPelajaran.id_mata_pelajaran },
+        include: {
+          guru: {
+            select: {
+              nama_guru: true,
+            },
+          },
+        },
+      });
+
+      res.status(201).json({
+        message: "Berhasil bergabung dengan mata pelajaran",
+        data: {
+          id_siswa: parseInt(id_siswa),
+          mata_pelajaran: {
+            id_mata_pelajaran: mataPelajaranDetail.id_mata_pelajaran,
+            nama_mata_pelajaran: mataPelajaranDetail.nama_mata_pelajaran,
+            kode_mata_pelajaran: mataPelajaranDetail.kode_mata_pelajaran,
+            deskripsi_mata_pelajaran:
+              mataPelajaranDetail.deskripsi_mata_pelajaran,
+            pengajar: mataPelajaranDetail.guru.nama_guru,
+          },
+        },
       });
     } catch (error) {
-      res.status(400).send(error.message);
+      console.error(error);
+      res.status(500).json({ message: "Server error", error: error.message });
     }
-  },
-
-  importExcel: async (req, res) => {
-    const storage = multer.diskStorage({
-      destination: function (req, file, cb) {
-        cb(null, "uploads/");
-      },
-      filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname));
-      },
-    });
-
-    const upload = multer({ storage }).single("file");
-
-    upload(req, res, async function (err) {
-      if (err) {
-        return res.status(400).json({ message: err.message });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ message: "File tidak ditemukan" });
-      }
-
-      try {
-        const workbook = xlsx.readFile(req.file.path);
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = xlsx.utils.sheet_to_json(sheet);
-
-        const imported = [];
-        const skipped = [];
-
-        for (const row of data) {
-          const { username, password, nama_siswa, nis, id_mata_pelajaran } = row;
-
-          if (!username || !password || !nama_siswa || !nis) {
-            skipped.push({ row, reason: "Data tidak lengkap" });
-            continue;
-          }
-
-          const userExist = await prisma.user.findUnique({ where: { username } });
-
-          if (userExist) {
-            skipped.push({ row, reason: "Data sudah ada" });
-            continue;
-          }
-
-          const nisExist = await prisma.siswa.findUnique({ where: { nis } });
-
-          if (nisExist) {
-            skipped.push({ row, reason: "NIS sudah digunakan" });
-            continue;
-          }
-
-          const hashedPassword = await bcrypt.hash(password.toString(), 10);
-
-          const result = await prisma.$transaction(async (tx) => {
-            const user = await tx.user.create({
-              data: {
-                username,
-                password: hashedPassword,
-                role: "SISWA",
-              },
-            });
-
-            const siswa = await tx.siswa.create({
-              data: {
-                nama_siswa,
-                nis,
-                // id_mata_pelajaran: id_mata_pelajaran || null,
-                user_id: user.id,
-              },
-            });
-
-            return {
-              id_siswa: siswa.id_siswa,
-              nama_siswa: siswa.nama_siswa,
-              nis: siswa.nis,
-              username: user.username,
-              role: user.role,
-            };
-          });
-
-          imported.push(result);
-        }
-
-        res.status(200).json({
-          message: "Import selesai",
-          imported: imported.length,
-          skipped: skipped.length,
-          data_imported: imported,
-          data_skipped: skipped,
-        });
-      } catch (error) {
-        console.error("❌ Error importExcel:", error);
-        res.status(500).json({ message: "Gagal import", error: error.message });
-      }
-    });
   },
 };
 

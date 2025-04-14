@@ -1,0 +1,15 @@
+enum TipeUjian {
+  MULTIPLE
+  ESSAY
+}
+
+enum Role {
+  SUPER_ADMIN
+  GURU
+  SISWA
+}
+
+enum StatusUjian {
+  PUBLISHED
+  DRAFT
+}

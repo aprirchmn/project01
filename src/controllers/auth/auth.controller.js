@@ -3,11 +3,11 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 exports.login = async (req, res) => {
-  const { username, password } = req.body;
+  const { identifier, password } = req.body;
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { username },
+    let user = await prisma.user.findUnique({
+      where: { username: identifier },
       include: {
         guru: true,
         siswa: true,
@@ -15,12 +15,52 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ message: "Username atau password salah" });
+      const guruByNip = await prisma.guru.findUnique({
+        where: { nip: identifier },
+        include: {
+          user: {
+            include: {
+              guru: true,
+              siswa: true,
+            },
+          },
+        },
+      });
+
+      if (guruByNip) {
+        user = guruByNip.user;
+      }
+    }
+
+    if (!user) {
+      const siswaByNis = await prisma.siswa.findUnique({
+        where: { nis: identifier },
+        include: {
+          user: {
+            include: {
+              guru: true,
+              siswa: true,
+            },
+          },
+        },
+      });
+
+      if (siswaByNis) {
+        user = siswaByNis.user;
+      }
+    }
+
+    if (!user) {
+      return res
+        .status(401)
+        .json({ message: "Username/NIP/NIS atau password salah" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Username atau password salah" });
+      return res
+        .status(401)
+        .json({ message: "Username/NIP/NIS atau password salah" });
     }
 
     const token = jwt.sign(
@@ -70,7 +110,6 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 exports.logout = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
