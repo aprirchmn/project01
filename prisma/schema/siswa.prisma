@@ -2,6 +2,7 @@ model siswa {
   id_siswa             Int                    @id @default(autoincrement())
   nama_siswa           String
   nis                  String                 @unique
+  jurusan              String
   email                String?                @unique
   user_id              Int                    @unique
   user                 User                   @relation(fields: [user_id], references: [id])

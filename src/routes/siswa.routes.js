@@ -4,8 +4,11 @@ const {
   authenticateToken,
   isGuruOrAdmin,
   isSiswaOrAdmin,
+  isSuperAdmin,
 } = require("../middleware/auth.middleware");
-const { guru } = require("../db");
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const router = express.Router();
 
@@ -20,5 +23,12 @@ router.post(
   siswaController.join,
 );
 router.delete("/:id", authenticateToken, isGuruOrAdmin, siswaController.delete);
+router.post(
+  "/import",
+  upload.single("file"),
+  authenticateToken,
+  isSuperAdmin,
+  siswaController.importFromExcel,
+);
 
 module.exports = router;

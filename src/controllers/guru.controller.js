@@ -1,6 +1,6 @@
 const prisma = require("../db");
 const bcrypt = require("bcrypt");
-const { parse } = require("dotenv");
+const XLSX = require("xlsx");
 
 const guruController = {
   getAll: async (req, res) => {
@@ -198,6 +198,7 @@ const guruController = {
       res.status(400).send(error.message);
     }
   },
+
   patch: async (req, res) => {
     try {
       const guruId = parseInt(req.params.id);
@@ -230,6 +231,84 @@ const guruController = {
       });
     } catch (error) {
       res.status(400).send(error.message);
+    }
+  },
+
+  importFromExcel: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "File tidak ditemukan" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(sheet);
+
+      const results = {
+        success: [],
+        errors: [],
+      };
+
+      for (const row of data) {
+        try {
+          if (!row.username || !row.nama_guru || !row.nip || !row.password) {
+            results.errors.push({
+              nip: row.nip || "Unknown",
+              error: "Missing required fields",
+            });
+            continue;
+          }
+
+          const hashedPassword = await bcrypt.hash(row.password, 10);
+
+          const result = await prisma.$transaction(async (prisma) => {
+            const user = await prisma.user.create({
+              data: {
+                username: row.username,
+                password: hashedPassword,
+                role: "GURU",
+                ...(row.email && { email: row.email }),
+              },
+            });
+
+            const guru = await prisma.guru.create({
+              data: {
+                nama_guru: row.nama_guru,
+                username: row.username,
+                nip: row.nip.toString(),
+                ...(row.email && { email: row.email }),
+                user_id: user.id,
+              },
+            });
+
+            return { user, guru };
+          });
+
+          results.success.push({
+            id_guru: result.guru.id_guru,
+            nama_guru: result.guru.nama_guru,
+            nip: result.guru.nip,
+          });
+        } catch (error) {
+          console.error(`Error importing row with NIP ${row.nip}:`, error);
+          results.errors.push({
+            nip: row.nip || "Unknown",
+            error:
+              error.code === "P2002"
+                ? "Username, NIP, atau email sudah digunakan"
+                : error.message,
+          });
+        }
+      }
+
+      res.status(200).json({
+        message: `Import selesai. Berhasil: ${results.success.length}, Gagal: ${results.errors.length}`,
+        results,
+      });
+    } catch (error) {
+      console.error("Error importing Excel:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   },
 };

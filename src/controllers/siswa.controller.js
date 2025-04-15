@@ -1,10 +1,20 @@
 const prisma = require("../db");
 const bcrypt = require("bcrypt");
+const XLSX = require("xlsx");
 
 const siswaController = {
   getAll: async (req, res) => {
+    const { jurusan } = req.query;
+
     try {
-      const siswas = await prisma.siswa.findMany();
+      const siswas = await prisma.siswa.findMany({
+        where: {
+          jurusan: {
+            contains: jurusan,
+            mode: "insensitive",
+          },
+        },
+      });
       res.json({
         status: 200,
         message: "Success",
@@ -34,8 +44,7 @@ const siswaController = {
   },
 
   create: async (req, res) => {
-    const { username, password, nama_siswa, nis, email, mata_pelajaran_ids } =
-      req.body;
+    const { username, password, nama_siswa, nis, email, jurusan } = req.body;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -54,6 +63,7 @@ const siswaController = {
           data: {
             nama_siswa,
             nis,
+            jurusan,
             ...(email && { email }),
             user_id: user.id,
           },
@@ -68,6 +78,7 @@ const siswaController = {
           id_siswa: result.siswa.id_siswa,
           nama_siswa: result.siswa.nama_siswa,
           nis: result.siswa.nis,
+          jurusan: result.siswa.jurusan,
           email: result.siswa.email,
           username: result.user.username,
           role: result.user.role,
@@ -268,6 +279,90 @@ const siswaController = {
       });
     } catch (error) {
       console.error(error);
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  },
+
+  importFromExcel: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "File tidak ditemukan" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(sheet);
+
+      const results = {
+        success: [],
+        errors: [],
+      };
+
+      for (const row of data) {
+        try {
+          if (
+            !row.username ||
+            !row.nama_siswa ||
+            !row.nis ||
+            !row.password ||
+            !row.jurusan
+          ) {
+            results.errors.push({
+              nis: row.nis || "Unknown",
+              error: "Missing required fields",
+            });
+            continue;
+          }
+
+          const hashedPassword = await bcrypt.hash(row.password, 10);
+
+          const result = await prisma.$transaction(async (prisma) => {
+            const user = await prisma.user.create({
+              data: {
+                username: row.username,
+                password: hashedPassword,
+                role: "SISWA",
+                ...(row.email && { email: row.email }),
+              },
+            });
+
+            const siswa = await prisma.siswa.create({
+              data: {
+                nama_siswa: row.nama_siswa,
+                nis: row.nis.toString(),
+                jurusan: row.jurusan,
+                ...(row.email && { email: row.email }),
+                user_id: user.id,
+              },
+            });
+
+            return { user, siswa };
+          });
+
+          results.success.push({
+            id_siswa: result.siswa.id_siswa,
+            nama_siswa: result.siswa.nama_siswa,
+            nis: result.siswa.nis,
+          });
+        } catch (error) {
+          console.error(`Error importing row with NIS ${row.nis}:`, error);
+          results.errors.push({
+            nis: row.nis || "Unknown",
+            error:
+              error.code === "P2002"
+                ? "Username, NIS, atau email sudah digunakan"
+                : error.message,
+          });
+        }
+      }
+
+      res.status(200).json({
+        message: `Import selesai. Berhasil: ${results.success.length}, Gagal: ${results.errors.length}`,
+        results,
+      });
+    } catch (error) {
+      console.error("Error importing Excel:", error);
       res.status(500).json({ message: "Server error", error: error.message });
     }
   },
