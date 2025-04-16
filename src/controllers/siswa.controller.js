@@ -4,17 +4,32 @@ const XLSX = require("xlsx");
 
 const siswaController = {
   getAll: async (req, res) => {
-    const { jurusan } = req.query;
+    const { jurusan, fase } = req.query;
 
     try {
       const siswas = await prisma.siswa.findMany({
         where: {
-          jurusan: {
-            contains: jurusan,
-            mode: "insensitive",
-          },
+          AND: [
+            jurusan
+              ? {
+                  jurusan: {
+                    contains: jurusan,
+                    mode: "insensitive",
+                  },
+                }
+              : {},
+            fase
+              ? {
+                  jurusan: {
+                    startsWith: fase,
+                    mode: "insensitive",
+                  },
+                }
+              : {},
+          ],
         },
       });
+
       res.json({
         status: 200,
         message: "Success",
