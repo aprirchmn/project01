@@ -2,11 +2,15 @@ const prisma = require("../db");
 
 const ujianController = {
   getAll: async (req, res) => {
+    const { status_ujian } = req.query;
     try {
       const ujians = await prisma.ujian.findMany({
         include: {
           soal_essay: true,
           soal_multiple: true,
+        },
+        where: {
+          status_ujian,
         },
       });
       res.json(ujians);
@@ -71,6 +75,8 @@ const ujianController = {
           status: 200,
           message: "Berhasil Mendapatkan Soal",
           data: {
+            id_mata_pelajaran: ujian.id_mata_pelajaran,
+            id_guru: ujian.id_guru,
             id_ujian: ujian.id_ujian,
             tipe_ujian: ujian.tipe_ujian,
             tanggal_ujian: ujian.tanggal_ujian,
@@ -411,6 +417,56 @@ const ujianController = {
       });
     } catch (error) {
       return res.status(500).json({ message: error.message });
+    }
+  },
+
+  examCheating: async (req, res) => {
+    const { id } = req.params;
+    const { id_siswa } = req.body;
+
+    try {
+      const hasil = await prisma.hasil_ujian.findFirst({
+        where: {
+          id_ujian: parseInt(id),
+          id_siswa: id_siswa,
+        },
+      });
+
+      if (!hasil)
+        return res.status(404).json({ error: "Hasil ujian tidak ditemukan" });
+
+      const jawabanSiswa = await prisma.jawaban.findMany({
+        where: {
+          id_hasil_ujian: hasil.id_hasil_ujian,
+        },
+      });
+
+      const nilai_multiple = jawabanSiswa
+        .filter((j) => j.id_soal_multiple !== null)
+        .reduce((total, j) => total + j.skor, 0);
+
+      const nilai_essay = jawabanSiswa
+        .filter((j) => j.id_soal_essay !== null)
+        .reduce((total, j) => total + j.skor, 0);
+
+      const nilai_total = nilai_multiple + nilai_essay;
+
+      const hasilUpdate = await prisma.hasil_ujian.update({
+        where: { id_hasil_ujian: hasil.id_hasil_ujian },
+        data: {
+          nilai_multiple,
+          nilai_essay,
+          nilai_total,
+          is_selesai: true,
+          waktu_selesai: new Date(),
+        },
+      });
+
+      res.json({ success: true, hasil: hasilUpdate });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ error: "Gagal proses penalti kecurangan", detail: err });
     }
   },
 };

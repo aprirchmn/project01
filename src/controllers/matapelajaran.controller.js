@@ -107,7 +107,10 @@ const matapelajaranController = {
   getById: async (req, res) => {
     try {
       const matapelajaranId = parseInt(req.params.id);
-      const matapelajaran = await prisma.mata_pelajaran.findUnique({
+      const userRole = req.user.role;
+      const statusFilter = req.query.status?.toUpperCase();
+
+      const query = {
         where: {
           id_mata_pelajaran: matapelajaranId,
         },
@@ -129,17 +132,45 @@ const matapelajaranController = {
               },
             },
           },
-          ujian: {
-            select: {
-              id_ujian: true,
-              nama_ujian: true,
-              tanggal_ujian: true,
-              durasi_ujian: true,
-              deskripsi_ujian: true,
-            },
-          },
         },
-      });
+      };
+
+      let ujianQuery = {};
+
+      const baseSelect = {
+        id_ujian: true,
+        nama_ujian: true,
+        tanggal_ujian: true,
+        durasi_ujian: true,
+        deskripsi_ujian: true,
+      };
+
+      if (userRole !== "SISWA") {
+        baseSelect.status_ujian = true;
+      }
+
+      if (userRole === "SISWA") {
+        ujianQuery = {
+          where: {
+            status_ujian: "PUBLISHED",
+          },
+          select: baseSelect,
+        };
+      } else {
+        ujianQuery = {
+          select: baseSelect,
+        };
+
+        if (statusFilter && ["DRAFT", "PUBLISHED"].includes(statusFilter)) {
+          ujianQuery.where = {
+            status_ujian: statusFilter,
+          };
+        }
+      }
+
+      query.include.ujian = ujianQuery;
+
+      const matapelajaran = await prisma.mata_pelajaran.findUnique(query);
 
       if (!matapelajaran) {
         return res

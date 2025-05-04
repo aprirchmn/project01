@@ -21,5 +21,11 @@ router.post(
   isSiswaOrAdmin,
   ujianController.submitUjian,
 );
+router.post(
+  "/:id/cheat",
+  authenticateToken,
+  isSiswaOrAdmin,
+  ujianController.examCheating,
+);
 
 module.exports = router;

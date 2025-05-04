@@ -16,13 +16,6 @@ app.get("/api", (req, res) => {
   res.send("Project Aplikasi CBT berbasis AES");
 });
 
-// const authController = require("./auth/auth.controller");
-
-// app.use("/", authController); // Menambahkan route login
-
-// Logout
-
-// Import dan gunakan route yang benar (bukan controller langsung)
 const siswaRoutes = require("./routes/siswa.routes");
 const guruRoutes = require("./routes/guru.routes");
 const jawabanRoutes = require("./routes/jawaban.routes");
@@ -33,6 +26,7 @@ const soalmultipleRoutes = require("./routes/soalmultiple.routes");
 const ujianRoutes = require("./routes/ujian.routes");
 const hasilujianRoutes = require("./routes/hasilujian.routes");
 const soalessayRoutes = require("./routes/soalessay.routes");
+const dashboardRoutes = require("./routes/dashboard.routes");
 const authRoutes = require("./routes/auth.routes");
 
 app.use("/siswas", siswaRoutes);
@@ -45,6 +39,7 @@ app.use("/soalmultiples", soalmultipleRoutes);
 app.use("/ujians", ujianRoutes);
 app.use("/hasilujians", hasilujianRoutes);
 app.use("/soalessays", soalessayRoutes);
+app.use("/dashboard", dashboardRoutes);
 app.use("/auth", authRoutes);
 
 app.listen(PORT, () => {
