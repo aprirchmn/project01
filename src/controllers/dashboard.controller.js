@@ -52,38 +52,73 @@ const dashboardController = {
   chartNilai: async (req, res) => {
     try {
       const avgNilaiPerMataPelajaran = await prisma.$queryRawUnsafe(`
-      SELECT 
-        mp.id_mata_pelajaran,
-        mp.nama_mata_pelajaran, 
-        ROUND(AVG(hu.nilai_total)::numeric, 2) as rata_rata_nilai,
-        COUNT(hu.id_hasil_ujian) as jumlah_peserta
-      FROM mata_pelajaran mp
-      JOIN ujian u ON mp.id_mata_pelajaran = u.id_mata_pelajaran
-      JOIN hasil_ujian hu ON u.id_ujian = hu.id_ujian
-      WHERE hu.is_selesai = true
-      GROUP BY mp.id_mata_pelajaran, mp.nama_mata_pelajaran
-      ORDER BY rata_rata_nilai DESC
-    `);
+        SELECT
+          mp.id_mata_pelajaran,
+          mp.nama_mata_pelajaran,
+          ROUND(AVG(hu.nilai_total)::numeric, 2) as rata_rata_nilai,
+          COUNT(hu.id_hasil_ujian) as jumlah_peserta
+        FROM mata_pelajaran mp
+               JOIN ujian u ON mp.id_mata_pelajaran = u.id_mata_pelajaran
+               JOIN hasil_ujian hu ON u.id_ujian = hu.id_ujian
+        WHERE hu.is_selesai = true
+        GROUP BY mp.id_mata_pelajaran, mp.nama_mata_pelajaran
+        ORDER BY rata_rata_nilai DESC
+      `);
 
       const detailNilaiPerMapel = await prisma.$queryRawUnsafe(`
-      SELECT 
-        mp.id_mata_pelajaran,
-        mp.nama_mata_pelajaran,
-        ROUND(AVG(hu.nilai_multiple)::numeric, 2) as rata_rata_nilai_multiple,
-        ROUND(AVG(hu.nilai_essay)::numeric, 2) as rata_rata_nilai_essay,
-        ROUND(AVG(hu.nilai_total)::numeric, 2) as rata_rata_nilai_total
-      FROM mata_pelajaran mp
-      JOIN ujian u ON mp.id_mata_pelajaran = u.id_mata_pelajaran
-      JOIN hasil_ujian hu ON u.id_ujian = hu.id_ujian
-      WHERE hu.is_selesai = true
-      GROUP BY mp.id_mata_pelajaran, mp.nama_mata_pelajaran
-      ORDER BY rata_rata_nilai_total DESC
-    `);
+        SELECT
+          mp.id_mata_pelajaran,
+          mp.nama_mata_pelajaran,
+          ROUND(AVG(hu.nilai_multiple)::numeric, 2) as rata_rata_nilai_multiple,
+          ROUND(AVG(hu.nilai_essay)::numeric, 2) as rata_rata_nilai_essay,
+          ROUND(AVG(hu.nilai_total)::numeric, 2) as rata_rata_nilai_total
+        FROM mata_pelajaran mp
+               JOIN ujian u ON mp.id_mata_pelajaran = u.id_mata_pelajaran
+               JOIN hasil_ujian hu ON u.id_ujian = hu.id_ujian
+        WHERE hu.is_selesai = true
+        GROUP BY mp.id_mata_pelajaran, mp.nama_mata_pelajaran
+        ORDER BY rata_rata_nilai_total DESC
+      `);
+
+      const distribusiNilai = await prisma.$queryRawUnsafe(`
+        SELECT
+          CASE
+            WHEN nilai_total >= 0 AND nilai_total < 10 THEN '0-9'
+            WHEN nilai_total >= 10 AND nilai_total < 20 THEN '10-19'
+            WHEN nilai_total >= 20 AND nilai_total < 30 THEN '20-29'
+            WHEN nilai_total >= 30 AND nilai_total < 40 THEN '30-39'
+            WHEN nilai_total >= 40 AND nilai_total < 50 THEN '40-49'
+            WHEN nilai_total >= 50 AND nilai_total < 60 THEN '50-59'
+            WHEN nilai_total >= 60 AND nilai_total < 70 THEN '60-69'
+            WHEN nilai_total >= 70 AND nilai_total < 80 THEN '70-79'
+            WHEN nilai_total >= 80 AND nilai_total < 90 THEN '80-89'
+            WHEN nilai_total >= 90 AND nilai_total <= 100 THEN '90-100'
+            ELSE 'Other'
+            END as rentang_nilai,
+          COUNT(*) as jumlah_siswa
+        FROM hasil_ujian
+        WHERE is_selesai = true
+        GROUP BY
+          CASE
+            WHEN nilai_total >= 0 AND nilai_total < 10 THEN '0-9'
+            WHEN nilai_total >= 10 AND nilai_total < 20 THEN '10-19'
+            WHEN nilai_total >= 20 AND nilai_total < 30 THEN '20-29'
+            WHEN nilai_total >= 30 AND nilai_total < 40 THEN '30-39'
+            WHEN nilai_total >= 40 AND nilai_total < 50 THEN '40-49'
+            WHEN nilai_total >= 50 AND nilai_total < 60 THEN '50-59'
+            WHEN nilai_total >= 60 AND nilai_total < 70 THEN '60-69'
+            WHEN nilai_total >= 70 AND nilai_total < 80 THEN '70-79'
+            WHEN nilai_total >= 80 AND nilai_total < 90 THEN '80-89'
+            WHEN nilai_total >= 90 AND nilai_total <= 100 THEN '90-100'
+            ELSE 'Other'
+            END
+      `);
 
       return res.status(200).json(
         handleBigInt({
-          avgNilaiPerMataPelajaran,
-          detailNilaiPerMapel,
+          // avgNilaiPerMataPelajaran,
+          // detailNilaiPerMapel,
+          distribusiNilai,
         }),
       );
     } catch (error) {
