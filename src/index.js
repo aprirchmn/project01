@@ -19,8 +19,6 @@ app.get("/api", (req, res) => {
 const siswaRoutes = require("./routes/siswa.routes");
 const guruRoutes = require("./routes/guru.routes");
 const jawabanRoutes = require("./routes/jawaban.routes");
-const jenisujianRoutes = require("./routes/jenisujian.routes");
-const kelasRoutes = require("./routes/kelas.routes");
 const matapelajaranRoutes = require("./routes/matapelajaran.routes");
 const soalmultipleRoutes = require("./routes/soalmultiple.routes");
 const ujianRoutes = require("./routes/ujian.routes");
@@ -32,8 +30,6 @@ const authRoutes = require("./routes/auth.routes");
 app.use("/siswas", siswaRoutes);
 app.use("/gurus", guruRoutes);
 app.use("/jawabans", jawabanRoutes);
-app.use("/jenisujians", jenisujianRoutes);
-app.use("/kelass", kelasRoutes);
 app.use("/matapelajarans", matapelajaranRoutes);
 app.use("/soalmultiples", soalmultipleRoutes);
 app.use("/ujians", ujianRoutes);
