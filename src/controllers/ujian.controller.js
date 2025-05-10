@@ -37,7 +37,6 @@ const ujianController = {
       }
 
       if (user.role === "SISWA") {
-        // 👉 Ambil status pengerjaan dari hasil_ujian
         const hasil = await prisma.hasil_ujian.findUnique({
           where: {
             id_siswa_id_ujian: {
@@ -47,13 +46,14 @@ const ujianController = {
           },
           select: {
             is_selesai: true,
-            waktu_selesai: true, // optional kalau mau tampilkan juga
+            waktu_selesai: true,
           },
         });
 
         const soalMultiple = ujian.soal_multiple.map((soal) => ({
           id_soal_multiple: soal.id_soal_multiple,
           pertanyaan: soal.pertanyaan,
+          gambar_soal: soal.gambar_soal,
           pilihan_a: soal.pilihan_a,
           pilihan_b: soal.pilihan_b,
           pilihan_c: soal.pilihan_c,
@@ -64,6 +64,7 @@ const ujianController = {
         const soalEssay = ujian.soal_essay.map((soal) => ({
           id_soal_essay: soal.id_soal_essay,
           pertanyaan: soal.pertanyaan,
+          gambar_soal: soal.gambar_soal,
         }));
 
         const dataSoal =
@@ -85,7 +86,7 @@ const ujianController = {
             tampilkan_nilai: ujian.tampilkan_nilai,
             tampilkan_jawaban: ujian.tampilkan_jawaban,
             accessCamera: ujian.accessCamera,
-            is_selesai: hasil?.is_selesai || false, // default false kalau belum ada
+            is_selesai: hasil?.is_selesai || false,
             waktu_selesai: hasil?.waktu_selesai || null,
             ...dataSoal,
           },
