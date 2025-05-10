@@ -17,6 +17,5 @@ router.delete(
   isGuruOrAdmin,
   soalEssayController.delete,
 );
-router.patch("/:id", authenticateToken, soalEssayController.patch);
 
 module.exports = router;

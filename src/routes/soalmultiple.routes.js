@@ -16,7 +16,7 @@ router.post(
   soalmultipleController.create,
 );
 router.put("/:id", authenticateToken, soalmultipleController.update);
-router.patch("/:id", authenticateToken, soalmultipleController.patch);
+
 router.delete("/:id", authenticateToken, soalmultipleController.delete);
 
 module.exports = router;

@@ -124,9 +124,7 @@ const ujianController = {
         nama_ujian,
         tipe_ujian,
         acak_soal,
-        tampilkan_nilai,
         tampilkan_jawaban,
-        accessCamera,
         soal_essay,
         soal_multiple,
       } = req.body;
@@ -142,9 +140,7 @@ const ujianController = {
           nama_ujian,
           tipe_ujian,
           acak_soal: acak_soal || false,
-          tampilkan_nilai: tampilkan_nilai || false,
           tampilkan_jawaban: tampilkan_jawaban || false,
-          accessCamera: accessCamera || false,
           soal_essay: {
             create: soal_essay || [],
           },
@@ -188,9 +184,7 @@ const ujianController = {
         nama_ujian,
         tipe_ujian,
         acak_soal,
-        tampilkan_nilai,
         tampilkan_jawaban,
-        accessCamera,
       } = req.body;
 
       const ujian = await prisma.ujian.update({
@@ -207,9 +201,7 @@ const ujianController = {
           nama_ujian: nama_ujian,
           tipe_ujian: tipe_ujian,
           acak_soal: acak_soal,
-          tampilkan_nilai: tampilkan_nilai,
           tampilkan_jawaban: tampilkan_jawaban,
-          accessCamera: accessCamera,
         },
         include: {
           mata_pelajaran: true,
@@ -229,40 +221,6 @@ const ujianController = {
         message: "Gagal memperbarui ujian",
         error: error.message,
       });
-    }
-  },
-
-  patch: async (req, res) => {
-    try {
-      const ujianId = parseInt(req.params.id);
-      const ujianData = req.body;
-
-      // Check if ujian exists
-      const existingUjian = await prisma.ujian.findUnique({
-        where: { id_ujian: ujianId },
-      });
-
-      if (!existingUjian) {
-        return res.status(404).json({ message: "Ujian tidak ditemukan" });
-      }
-
-      const ujian = await prisma.ujian.update({
-        where: {
-          id_ujian: ujianId,
-        },
-        data: ujianData,
-        include: {
-          soal_essays: true,
-          soal_multiples: true,
-        },
-      });
-
-      res.json({
-        data: ujian,
-        message: "Berhasil mengedit Ujian",
-      });
-    } catch (error) {
-      res.status(400).send(error.message);
     }
   },
 

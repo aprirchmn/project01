@@ -9,9 +9,7 @@ model ujian {
   nama_ujian        String
   tipe_ujian        TipeUjian
   acak_soal         Boolean     @default(false)
-  tampilkan_nilai   Boolean     @default(false)
   tampilkan_jawaban Boolean     @default(false)
-  accessCamera      Boolean     @default(false)
 
   // Relations
   mata_pelajaran mata_pelajaran  @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
@@ -23,10 +21,11 @@ model ujian {
 }
 
 model soal_essay {
-  id_soal_essay     Int    @id @default(autoincrement())
+  id_soal_essay     Int     @id @default(autoincrement())
   id_mata_pelajaran Int
   id_ujian          Int?
   pertanyaan        String
+  gambar_soal       String?
   kunci_jawaban     String
   bobot             Float
 
@@ -37,10 +36,11 @@ model soal_essay {
 }
 
 model soal_multiple {
-  id_soal_multiple  Int    @id @default(autoincrement())
+  id_soal_multiple  Int     @id @default(autoincrement())
   id_mata_pelajaran Int
   id_ujian          Int?
   pertanyaan        String
+  gambar_soal       String?
   pilihan_a         String
   pilihan_b         String
   pilihan_c         String

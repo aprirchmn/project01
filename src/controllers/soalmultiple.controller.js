@@ -1,4 +1,30 @@
 const prisma = require("../db");
+const multer = require("multer");
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const fs = require("fs");
+
+const upload = multer({
+  dest: "tmp/uploads/",
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("File harus berupa gambar!"), false);
+    }
+  },
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "soal-images",
+    allowed_formats: ["jpg", "jpeg", "png", "gif"],
+    transformation: [{ width: 1000, crop: "limit" }],
+  },
+});
+const uploadDirectly = multer({ storage: storage });
 
 const soalmultipleController = {
   getAll: async (req, res) => {
@@ -41,25 +67,57 @@ const soalmultipleController = {
 
   create: async (req, res) => {
     try {
-      const newSoalmultipleData = req.body;
-      const soalmultiple = await prisma.soal_multiple.create({
-        data: {
-          id_mata_pelajaran: newSoalmultipleData.id_mata_pelajaran,
-          id_ujian: newSoalmultipleData.id_ujian,
-          pertanyaan: newSoalmultipleData.pertanyaan,
-          pilihan_a: newSoalmultipleData.pilihan_a,
-          pilihan_b: newSoalmultipleData.pilihan_b,
-          pilihan_c: newSoalmultipleData.pilihan_c,
-          pilihan_d: newSoalmultipleData.pilihan_d,
-          pilihan_e: newSoalmultipleData.pilihan_e,
-          kunci_jawaban: newSoalmultipleData.kunci_jawaban,
-          bobot: newSoalmultipleData.bobot,
-        },
-      });
+      upload.single("gambar_soal")(req, res, async function (err) {
+        if (err) {
+          return res.status(400).json({ message: err.message });
+        }
 
-      res.status(201).json({
-        data: soalmultiple,
-        message: "Berhasil menambahkan Soal Multiple",
+        const newSoalmultipleData = req.body;
+        let gambarUrl = null;
+
+        if (req.file) {
+          try {
+            const result = await cloudinary.uploader.upload(req.file.path, {
+              folder: "soal-images",
+              resource_type: "image",
+            });
+
+            gambarUrl = result.secure_url;
+
+            fs.unlinkSync(req.file.path);
+          } catch (cloudinaryError) {
+            if (req.file && req.file.path) {
+              fs.unlinkSync(req.file.path);
+            }
+            return res.status(500).json({
+              message: "Gagal mengunggah gambar",
+              error: cloudinaryError.message,
+            });
+          }
+        }
+
+        const soalmultiple = await prisma.soal_multiple.create({
+          data: {
+            id_mata_pelajaran: parseInt(newSoalmultipleData.id_mata_pelajaran),
+            id_ujian: newSoalmultipleData.id_ujian
+              ? parseInt(newSoalmultipleData.id_ujian)
+              : null,
+            pertanyaan: newSoalmultipleData.pertanyaan,
+            gambar_soal: gambarUrl,
+            pilihan_a: newSoalmultipleData.pilihan_a,
+            pilihan_b: newSoalmultipleData.pilihan_b,
+            pilihan_c: newSoalmultipleData.pilihan_c,
+            pilihan_d: newSoalmultipleData.pilihan_d,
+            pilihan_e: newSoalmultipleData.pilihan_e,
+            kunci_jawaban: newSoalmultipleData.kunci_jawaban,
+            bobot: parseFloat(newSoalmultipleData.bobot),
+          },
+        });
+
+        res.status(201).json({
+          data: soalmultiple,
+          message: "Berhasil menambahkan Soal Multiple dengan gambar",
+        });
       });
     } catch (error) {
       res.status(400).send(error.message);
@@ -68,91 +126,96 @@ const soalmultipleController = {
 
   update: async (req, res) => {
     try {
-      const soalmultipleId = parseInt(req.params.id);
-      const soalmultipleData = req.body;
+      const { id } = req.params;
 
-      if (
-        !(
-          soalmultipleData.pertanyaan &&
-          soalmultipleData.pilihan_a &&
-          soalmultipleData.pilihan_b &&
-          soalmultipleData.pilihan_c &&
-          soalmultipleData.pilihan_d &&
-          soalmultipleData.pilihan_e &&
-          soalmultipleData.kunci_jawaban &&
-          soalmultipleData.bobot
-        )
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Tidak boleh ada data yang kosong" });
-      }
+      upload.single("gambar_soal")(req, res, async function (err) {
+        if (err) {
+          return res.status(400).json({ message: err.message });
+        }
 
-      const existingSoalmultiple = await prisma.soal_multiple.findUnique({
-        where: {
-          id_soal_multiple: soalmultipleId,
-        },
-      });
+        const updateData = req.body;
+        let gambarUrl = null;
 
-      if (!existingSoalmultiple) {
-        return res
-          .status(404)
-          .json({ message: "Soal Multiple tidak ditemukan" });
-      }
+        const existingSoal = await prisma.soal_multiple.findUnique({
+          where: { id_soal_multiple: parseInt(id) },
+        });
 
-      const soalmultiple = await prisma.soal_multiple.update({
-        where: {
-          id_soal_multiple: soalmultipleId,
-        },
-        data: {
-          id_mata_pelajaran: soalmultipleData.id_mata_pelajaran,
-          pertanyaan: soalmultipleData.pertanyaan,
-          pilihan_a: soalmultipleData.pilihan_a,
-          pilihan_b: soalmultipleData.pilihan_b,
-          pilihan_c: soalmultipleData.pilihan_c,
-          pilihan_d: soalmultipleData.pilihan_d,
-          pilihan_e: soalmultipleData.pilihan_e,
-          kunci_jawaban: soalmultipleData.kunci_jawaban,
-          bobot: soalmultipleData.bobot,
-        },
-      });
+        if (!existingSoal) {
+          return res.status(404).json({ message: "Soal tidak ditemukan" });
+        }
 
-      res.json({
-        data: soalmultiple,
-        message: "Berhasil mengubah Soal Multiple",
-      });
-    } catch (error) {
-      res.status(400).send(error.message);
-    }
-  },
+        if (req.file) {
+          try {
+            const result = await cloudinary.uploader.upload(req.file.path, {
+              folder: "soal-images",
+              resource_type: "image",
+            });
 
-  patch: async (req, res) => {
-    try {
-      const soalmultipleId = parseInt(req.params.id);
-      const soalmultipleData = req.body;
+            gambarUrl = result.secure_url;
+            fs.unlinkSync(req.file.path);
 
-      const existingSoalmultiple = await prisma.soal_multiple.findUnique({
-        where: {
-          id_soal_multiple: soalmultipleId,
-        },
-      });
+            if (existingSoal.gambar_soal) {
+              const publicId = existingSoal.gambar_soal
+                .split("/")
+                .pop()
+                .split(".")[0];
+              try {
+                await cloudinary.uploader.destroy(`soal-images/${publicId}`);
+              } catch (error) {
+                console.log("Gagal menghapus gambar lama:", error);
+              }
+            }
+          } catch (cloudinaryError) {
+            if (req.file && req.file.path) {
+              fs.unlinkSync(req.file.path);
+            }
+            return res.status(500).json({
+              message: "Gagal mengunggah gambar",
+              error: cloudinaryError.message,
+            });
+          }
+        } else {
+          gambarUrl = existingSoal.gambar_soal;
+        }
 
-      if (!existingSoalmultiple) {
-        return res
-          .status(404)
-          .json({ message: "Soal Multiple tidak ditemukan" });
-      }
+        if (updateData.hapus_gambar === "true" && existingSoal.gambar_soal) {
+          gambarUrl = null;
+          const publicId = existingSoal.gambar_soal
+            .split("/")
+            .pop()
+            .split(".")[0];
+          try {
+            await cloudinary.uploader.destroy(`soal-images/${publicId}`);
+          } catch (error) {
+            console.log("Gagal menghapus gambar:", error);
+          }
+        }
 
-      const soalmultiple = await prisma.soal_multiple.update({
-        where: {
-          id_soal_multiple: soalmultipleId,
-        },
-        data: soalmultipleData,
-      });
+        const updatedSoal = await prisma.soal_multiple.update({
+          where: { id_soal_multiple: parseInt(id) },
+          data: {
+            id_mata_pelajaran: updateData.id_mata_pelajaran
+              ? parseInt(updateData.id_mata_pelajaran)
+              : undefined,
+            id_ujian: updateData.id_ujian
+              ? parseInt(updateData.id_ujian)
+              : undefined,
+            pertanyaan: updateData.pertanyaan || undefined,
+            gambar_soal: gambarUrl,
+            pilihan_a: updateData.pilihan_a || undefined,
+            pilihan_b: updateData.pilihan_b || undefined,
+            pilihan_c: updateData.pilihan_c || undefined,
+            pilihan_d: updateData.pilihan_d || undefined,
+            pilihan_e: updateData.pilihan_e || undefined,
+            kunci_jawaban: updateData.kunci_jawaban || undefined,
+            bobot: updateData.bobot ? parseFloat(updateData.bobot) : undefined,
+          },
+        });
 
-      res.json({
-        data: soalmultiple,
-        message: "Berhasil mengedit Soal Multiple",
+        res.status(200).json({
+          data: updatedSoal,
+          message: "Berhasil memperbarui Soal Multiple",
+        });
       });
     } catch (error) {
       res.status(400).send(error.message);
@@ -161,27 +224,32 @@ const soalmultipleController = {
 
   delete: async (req, res) => {
     try {
-      const soalmultipleId = parseInt(req.params.id);
+      const { id } = req.params;
 
-      const existingSoalmultiple = await prisma.soal_multiple.findUnique({
-        where: {
-          id_soal_multiple: soalmultipleId,
-        },
+      const soal = await prisma.soal_multiple.findUnique({
+        where: { id_soal_multiple: parseInt(id) },
       });
 
-      if (!existingSoalmultiple) {
-        return res
-          .status(404)
-          .json({ message: "Soal Multiple tidak ditemukan" });
+      if (!soal) {
+        return res.status(404).json({ message: "Soal tidak ditemukan" });
+      }
+
+      if (soal.gambar_soal) {
+        try {
+          const publicId = soal.gambar_soal.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(`soal-images/${publicId}`);
+        } catch (error) {
+          console.log("Gagal menghapus gambar:", error);
+        }
       }
 
       await prisma.soal_multiple.delete({
-        where: {
-          id_soal_multiple: soalmultipleId,
-        },
+        where: { id_soal_multiple: parseInt(id) },
       });
 
-      res.status(200).json({ message: "Soal Multiple berhasil dihapus" });
+      res.status(200).json({
+        message: "Berhasil menghapus Soal Multiple",
+      });
     } catch (error) {
       res.status(400).send(error.message);
     }
