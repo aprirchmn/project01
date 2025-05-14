@@ -10,18 +10,6 @@ model User {
   updated_at DateTime @updatedAt
 
   // Relations
-  guru         guru?
-  siswa        siswa?
-  refreshToken RefreshToken[]
-}
-
-model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  user_id   Int
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-
-  // Relations
-  user User @relation(fields: [user_id], references: [id])
+  guru  guru?
+  siswa siswa?
 }

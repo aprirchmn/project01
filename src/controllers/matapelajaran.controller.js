@@ -108,7 +108,9 @@ const matapelajaranController = {
     try {
       const matapelajaranId = parseInt(req.params.id);
       const userRole = req.user.role;
+      const userId = req.user.id;
       const statusFilter = req.query.status?.toUpperCase();
+      const statusPengerjaanFilter = req.query.status_pengerjaan?.toUpperCase();
 
       const query = {
         where: {
@@ -178,12 +180,65 @@ const matapelajaranController = {
           .json({ message: "Mata Pelajaran tidak ditemukan" });
       }
 
+      if (userRole === "SISWA") {
+        const siswa = await prisma.siswa.findUnique({
+          where: {
+            user_id: userId,
+          },
+          select: {
+            id_siswa: true,
+          },
+        });
+
+        if (siswa) {
+          const hasilUjianList = await prisma.hasil_ujian.findMany({
+            where: {
+              id_siswa: siswa.user_id,
+              ujian: {
+                id_mata_pelajaran: matapelajaranId,
+              },
+            },
+            select: {
+              id_ujian: true,
+              is_selesai: true,
+            },
+          });
+
+          const ujianStatusMap = {};
+          hasilUjianList.forEach((hasil) => {
+            ujianStatusMap[hasil.id_ujian] = hasil.is_selesai
+              ? "SELESAI"
+              : "SEDANG DIKERJAKAN";
+          });
+
+          matapelajaran.ujian = matapelajaran.ujian.map((ujian) => {
+            return {
+              ...ujian,
+              status_pengerjaan:
+                ujianStatusMap[ujian.id_ujian] || "BELUM DIKERJAKAN",
+            };
+          });
+
+          if (
+            statusPengerjaanFilter &&
+            ["SELESAI", "SEDANG DIKERJAKAN", "BELUM DIKERJAKAN"].includes(
+              statusPengerjaanFilter,
+            )
+          ) {
+            matapelajaran.ujian = matapelajaran.ujian.filter(
+              (ujian) => ujian.status_pengerjaan === statusPengerjaanFilter,
+            );
+          }
+        }
+      }
+
       res.json({
         status: 200,
         message: "Berhasil Menampilkan data",
         data: matapelajaran,
       });
     } catch (error) {
+      console.error("Error:", error);
       res.status(400).send(error.message);
     }
   },

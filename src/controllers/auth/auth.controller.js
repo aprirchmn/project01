@@ -74,30 +74,8 @@ exports.login = async (req, res) => {
       { expiresIn: "1d" },
     );
 
-    const refreshToken = jwt.sign(
-      { id: user.id },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "7d" },
-    );
-
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        user_id: user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
-
     res.json({
       token,
-      refreshToken,
       user: {
         id: user.id,
         username: user.username,
