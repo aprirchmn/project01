@@ -36,6 +36,23 @@ const ujianController = {
         return res.status(404).json({ message: "Ujian tidak ditemukan" });
       }
 
+      let totalBobot = 0;
+      let totalSoal = 0;
+
+      if (ujian.tipe_ujian === "MULTIPLE") {
+        totalBobot = ujian.soal_multiple.reduce(
+          (sum, soal) => sum + soal.bobot,
+          0,
+        );
+        totalSoal = ujian.soal_multiple.length;
+      } else if (ujian.tipe_ujian === "ESSAY") {
+        totalBobot = ujian.soal_essay.reduce(
+          (sum, soal) => sum + soal.bobot,
+          0,
+        );
+        totalSoal = ujian.soal_essay.length;
+      }
+
       if (user.role === "SISWA") {
         const hasil = await prisma.hasil_ujian.findUnique({
           where: {
@@ -88,12 +105,19 @@ const ujianController = {
             accessCamera: ujian.accessCamera,
             is_selesai: hasil?.is_selesai || false,
             waktu_selesai: hasil?.waktu_selesai || null,
+            totalBobot: totalBobot,
+            totalSoal: totalSoal,
             ...dataSoal,
           },
         });
       }
 
       if (user.role === "GURU" || user.role === "SUPER_ADMIN") {
+        const totalData = {
+          totalBobot: totalBobot,
+          totalSoal: totalSoal,
+        };
+
         if (ujian.tipe_ujian === "MULTIPLE") {
           delete ujian.soal_essay;
         } else if (ujian.tipe_ujian === "ESSAY") {
@@ -103,7 +127,10 @@ const ujianController = {
         return res.json({
           status: 200,
           message: "Berhasil Mendapatkan Data",
-          data: ujian,
+          data: {
+            ...ujian,
+            ...totalData,
+          },
         });
       }
 

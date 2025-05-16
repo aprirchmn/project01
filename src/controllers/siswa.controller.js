@@ -67,7 +67,8 @@ const siswaController = {
       const result = await prisma.$transaction(async (prisma) => {
         const user = await prisma.user.create({
           data: {
-            username,
+            // username,
+            ...(username && { username }),
             password: hashedPassword,
             ...(email && { email }),
             userRoles: {
@@ -140,7 +141,7 @@ const siswaController = {
         });
 
         const updateUserData = {
-          username,
+          ...(username && { username }),
           ...(email && { email }),
         };
 
