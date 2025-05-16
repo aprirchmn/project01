@@ -5,10 +5,30 @@ const XLSX = require("xlsx");
 const guruController = {
   getAll: async (req, res) => {
     try {
-      const gurus = await prisma.guru.findMany();
+      const gurus = await prisma.guru.findMany({
+        include: {
+          user: {
+            include: {
+              userRoles: true,
+            },
+          },
+        },
+      });
+
+      const formattedGurus = gurus.map((guru) => {
+        const { user, ...guruData } = guru;
+
+        return {
+          ...guruData,
+          email: user.email,
+          username: user.username,
+          roles: user.userRoles.map((userRole) => userRole.role),
+        };
+      });
+
       res.json({
         status: 200,
-        data: gurus,
+        data: formattedGurus,
       });
     } catch (error) {
       res.status(500).send(error.message);
