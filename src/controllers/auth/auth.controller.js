@@ -109,6 +109,8 @@ exports.logout = async (req, res) => {
 
 exports.me = async (req, res) => {
   try {
+    console.log("req.user: ", req.user);
+
     const userId = req.user.id;
 
     if (!userId) {
@@ -131,8 +133,8 @@ exports.me = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role,
-        profile: user.role === "GURU" ? user.guru : user.siswa,
+        role: req.user.role,
+        profile: req.user.role === "GURU" ? user.guru : user.siswa,
       },
     });
   } catch (error) {
