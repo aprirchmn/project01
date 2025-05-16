@@ -9,10 +9,13 @@ exports.login = async (req, res) => {
     let user = await prisma.user.findUnique({
       where: { username: identifier },
       include: {
+        userRoles: true,
         guru: true,
         siswa: true,
       },
     });
+
+    console.log(user);
 
     if (!user) {
       const guruByNip = await prisma.guru.findUnique({
@@ -66,7 +69,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       {
         id: user.id,
-        role: user.role,
+        role: user.userRoles[0]?.role,
         profileId:
           user.role === "GURU" ? user.guru?.id_guru : user.siswa?.id_siswa,
       },
@@ -79,7 +82,7 @@ exports.login = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role,
+        role: user.userRoles[0]?.role,
         profile: user.role === "GURU" ? user.guru : user.siswa,
       },
     });
@@ -88,6 +91,7 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 exports.logout = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -109,8 +113,6 @@ exports.logout = async (req, res) => {
 
 exports.me = async (req, res) => {
   try {
-    console.log("req.user: ", req.user);
-
     const userId = req.user.id;
 
     if (!userId) {
