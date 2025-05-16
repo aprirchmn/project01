@@ -16,7 +16,6 @@ router.get("/:id", authenticateToken, isGuruOrAdmin, guruController.getById);
 router.post("/", authenticateToken, isGuruOrAdmin, guruController.create);
 router.put("/:id", authenticateToken, isGuruOrAdmin, guruController.update);
 router.delete("/:id", authenticateToken, isGuruOrAdmin, guruController.delete);
-router.patch("/:id", authenticateToken, isGuruOrAdmin, guruController.patch);
 router.post(
   "/import",
   upload.single("file"),

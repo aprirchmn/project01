@@ -69,7 +69,7 @@ const siswaController = {
           data: {
             username,
             password: hashedPassword,
-            role: "SISWA",
+            roles: ["SISWA"],
             ...(email && { email }),
           },
         });
