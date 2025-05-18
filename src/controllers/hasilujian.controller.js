@@ -308,21 +308,30 @@ const hasilujianController = {
         gambar_soal: jawaban.soal_essay.gambar_soal,
       }));
 
+      const responseData = {
+        info_hasil: {
+          id_hasil_ujian: hasilUjian.id_hasil_ujian,
+          siswa: hasilUjian.siswa,
+          ujian: hasilUjian.ujian,
+          nilai_multiple: hasilUjian.nilai_multiple,
+          nilai_essay: hasilUjian.nilai_essay,
+          nilai_total: hasilUjian.nilai_total,
+          waktu_selesai: hasilUjian.waktu_selesai,
+        },
+      };
+
+      if (hasilUjian.ujian.tipe_ujian === "MULTIPLE") {
+        responseData.jawaban_multiple = formattedJawabanMultiple;
+      } else if (hasilUjian.ujian.tipe_ujian === "ESSAY") {
+        responseData.jawaban_essay = formattedJawabanEssay;
+      } else {
+        responseData.jawaban_multiple = formattedJawabanMultiple;
+        responseData.jawaban_essay = formattedJawabanEssay;
+      }
+
       return res.status(200).json({
         success: true,
-        data: {
-          info_hasil: {
-            id_hasil_ujian: hasilUjian.id_hasil_ujian,
-            siswa: hasilUjian.siswa,
-            ujian: hasilUjian.ujian,
-            nilai_multiple: hasilUjian.nilai_multiple,
-            nilai_essay: hasilUjian.nilai_essay,
-            nilai_total: hasilUjian.nilai_total,
-            waktu_selesai: hasilUjian.waktu_selesai,
-          },
-          jawaban_multiple: formattedJawabanMultiple,
-          jawaban_essay: formattedJawabanEssay,
-        },
+        data: responseData,
       });
     } catch (error) {
       console.error("Error mendapatkan detail jawaban:", error);
