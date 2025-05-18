@@ -8,6 +8,7 @@ const {
 const router = express.Router();
 
 router.get("/", authenticateToken, hasilujianController.getAll);
+
 router.get(
   "/:id",
   authenticateToken,
@@ -39,6 +40,13 @@ router.get(
   "/:idUjian/review/:idSiswa",
   authenticateToken,
   hasilujianController.reviewJawaban,
+);
+
+router.get(
+  "/:id_hasil_ujian/detail",
+  authenticateToken,
+  isGuruOrAdmin,
+  hasilujianController.detailJawabanSiswa,
 );
 
 module.exports = router;

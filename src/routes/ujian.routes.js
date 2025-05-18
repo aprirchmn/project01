@@ -9,7 +9,19 @@ const {
 const router = express.Router();
 
 router.get("/", authenticateToken, ujianController.getAll);
+router.get(
+  "/laporan",
+  authenticateToken,
+  isGuruOrAdmin,
+  ujianController.examResult,
+);
 router.get("/:id", authenticateToken, ujianController.getById);
+router.get(
+  "/:id_ujian/hasil",
+  authenticateToken,
+  isGuruOrAdmin,
+  ujianController.examDetailResult,
+);
 router.post("/", authenticateToken, isGuruOrAdmin, ujianController.create);
 router.put("/:id", authenticateToken, isGuruOrAdmin, ujianController.update);
 router.delete("/:id", authenticateToken, isGuruOrAdmin, ujianController.delete);

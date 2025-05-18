@@ -15,8 +15,6 @@ exports.login = async (req, res) => {
       },
     });
 
-    console.log(user);
-
     if (!user) {
       const guruByNip = await prisma.guru.findUnique({
         where: { nip: identifier },

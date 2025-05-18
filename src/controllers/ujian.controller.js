@@ -100,9 +100,7 @@ const ujianController = {
             tanggal_ujian: ujian.tanggal_ujian,
             durasi_ujian: ujian.durasi_ujian,
             acak_soal: ujian.acak_soal,
-            tampilkan_nilai: ujian.tampilkan_nilai,
             tampilkan_jawaban: ujian.tampilkan_jawaban,
-            accessCamera: ujian.accessCamera,
             is_selesai: hasil?.is_selesai || false,
             waktu_selesai: hasil?.waktu_selesai || null,
             totalBobot: totalBobot,
@@ -453,6 +451,164 @@ const ujianController = {
       res
         .status(500)
         .json({ error: "Gagal proses penalti kecurangan", detail: err });
+    }
+  },
+
+  examResult: async (req, res) => {
+    try {
+      const guruId = req.user.id;
+
+      const ujianList = await prisma.ujian.findMany({
+        where: {
+          id_guru: guruId,
+          hasil_ujian: {
+            some: {
+              is_selesai: true,
+            },
+          },
+        },
+        select: {
+          id_ujian: true,
+          nama_ujian: true,
+          tanggal_ujian: true,
+          status_ujian: true,
+          tipe_ujian: true,
+          mata_pelajaran: {
+            select: {
+              nama_mata_pelajaran: true,
+            },
+          },
+          _count: {
+            select: {
+              hasil_ujian: {
+                where: {
+                  is_selesai: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          tanggal_ujian: "desc",
+        },
+      });
+
+      const formattedUjianList = ujianList.map((ujian) => ({
+        id_ujian: ujian.id_ujian,
+        nama_ujian: ujian.nama_ujian,
+        mata_pelajaran: ujian.mata_pelajaran.nama_mata_pelajaran,
+        tanggal_ujian: ujian.tanggal_ujian,
+        status_ujian: ujian.status_ujian,
+        tipe_ujian: ujian.tipe_ujian,
+        jumlah_peserta: ujian._count.hasil_ujian,
+      }));
+
+      return res.status(200).json({
+        success: true,
+        data: formattedUjianList,
+      });
+    } catch (error) {
+      console.error("Error mendapatkan daftar ujian:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan server",
+      });
+    }
+  },
+
+  examDetailResult: async (req, res) => {
+    try {
+      const { id_ujian } = req.params;
+      const guruId = req.user.id;
+
+      const ujian = await prisma.ujian.findFirst({
+        where: {
+          id_ujian: parseInt(id_ujian),
+          id_guru: guruId,
+        },
+      });
+
+      const detailUjian = await prisma.ujian.findUnique({
+        where: {
+          id_ujian: parseInt(id_ujian),
+        },
+        select: {
+          nama_ujian: true,
+          tanggal_ujian: true,
+          durasi_ujian: true,
+          tipe_ujian: true,
+          mata_pelajaran: {
+            select: {
+              nama_mata_pelajaran: true,
+            },
+          },
+        },
+      });
+
+      const hasilUjianSiswa = await prisma.hasil_ujian.findMany({
+        where: {
+          id_ujian: parseInt(id_ujian),
+          is_selesai: true,
+        },
+        select: {
+          id_hasil_ujian: true,
+          nilai_multiple: true,
+          nilai_essay: true,
+          nilai_total: true,
+          waktu_selesai: true,
+          siswa: {
+            select: {
+              id_siswa: true,
+              nama_siswa: true,
+              nis: true,
+              jurusan: true,
+            },
+          },
+        },
+        orderBy: {
+          nilai_total: "desc",
+        },
+      });
+
+      const nilaiArray = hasilUjianSiswa.map((hasil) => hasil.nilai_total);
+      const statistik =
+        nilaiArray.length > 0
+          ? {
+              nilai_tertinggi: Math.max(...nilaiArray),
+              nilai_terendah: Math.min(...nilaiArray),
+              nilai_rata_rata:
+                nilaiArray.reduce((a, b) => a + b, 0) / nilaiArray.length,
+            }
+          : {
+              nilai_tertinggi: 0,
+              nilai_terendah: 0,
+              nilai_rata_rata: 0,
+            };
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          detail_ujian: detailUjian,
+          statistik: statistik,
+          hasil_siswa: hasilUjianSiswa.map((hasil) => ({
+            id_hasil_ujian: hasil.id_hasil_ujian,
+            id_siswa: hasil.siswa.id_siswa,
+            nama_siswa: hasil.siswa.nama_siswa,
+            nis: hasil.siswa.nis,
+            jurusan: hasil.siswa.jurusan,
+            nilai_multiple: hasil.nilai_multiple,
+            nilai_essay: hasil.nilai_essay,
+            nilai_total: hasil.nilai_total,
+            waktu_selesai: hasil.waktu_selesai,
+          })),
+        },
+      });
+    } catch (error) {
+      console.error("Error mendapatkan hasil ujian:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan server",
+      });
     }
   },
 };

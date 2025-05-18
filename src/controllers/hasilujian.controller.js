@@ -217,6 +217,121 @@ const hasilujianController = {
       res.status(500).send(error.message);
     }
   },
+
+  detailJawabanSiswa: async (req, res) => {
+    try {
+      const { id_hasil_ujian } = req.params;
+      const guruId = req.user.id;
+
+      const hasilUjian = await prisma.hasil_ujian.findFirst({
+        where: {
+          id_hasil_ujian: parseInt(id_hasil_ujian),
+        },
+        include: {
+          siswa: {
+            select: {
+              nama_siswa: true,
+              nis: true,
+              jurusan: true,
+            },
+          },
+          ujian: {
+            select: {
+              id_guru: true,
+              nama_ujian: true,
+              tipe_ujian: true,
+              mata_pelajaran: {
+                select: {
+                  nama_mata_pelajaran: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const jawabanMultiple = await prisma.jawaban.findMany({
+        where: {
+          id_hasil_ujian: parseInt(id_hasil_ujian),
+          id_soal_multiple: {
+            not: null,
+          },
+        },
+        include: {
+          soal_multiple: true,
+        },
+        orderBy: {
+          id_soal_multiple: "asc",
+        },
+      });
+
+      const jawabanEssay = await prisma.jawaban.findMany({
+        where: {
+          id_hasil_ujian: parseInt(id_hasil_ujian),
+          id_soal_essay: {
+            not: null,
+          },
+        },
+        include: {
+          soal_essay: true,
+        },
+        orderBy: {
+          id_soal_essay: "asc",
+        },
+      });
+
+      const formattedJawabanMultiple = jawabanMultiple.map((jawaban) => ({
+        id_jawaban: jawaban.id_jawaban,
+        id_soal: jawaban.id_soal_multiple,
+        pertanyaan: jawaban.soal_multiple.pertanyaan,
+        pilihan_a: jawaban.soal_multiple.pilihan_a,
+        pilihan_b: jawaban.soal_multiple.pilihan_b,
+        pilihan_c: jawaban.soal_multiple.pilihan_c,
+        pilihan_d: jawaban.soal_multiple.pilihan_d,
+        pilihan_e: jawaban.soal_multiple.pilihan_e,
+        kunci_jawaban: jawaban.soal_multiple.kunci_jawaban,
+        jawaban_siswa: jawaban.jawaban_murid,
+        skor: jawaban.skor,
+        bobot: jawaban.soal_multiple.bobot,
+        gambar_soal: jawaban.soal_multiple.gambar_soal,
+      }));
+
+      const formattedJawabanEssay = jawabanEssay.map((jawaban) => ({
+        id_jawaban: jawaban.id_jawaban,
+        id_soal: jawaban.id_soal_essay,
+        pertanyaan: jawaban.soal_essay.pertanyaan,
+        kunci_jawaban: jawaban.soal_essay.kunci_jawaban,
+        jawaban_siswa: jawaban.jawaban_murid,
+        skor: jawaban.skor,
+        cosine_similarity: jawaban.cosine,
+        bobot: jawaban.soal_essay.bobot,
+        gambar_soal: jawaban.soal_essay.gambar_soal,
+      }));
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          info_hasil: {
+            id_hasil_ujian: hasilUjian.id_hasil_ujian,
+            siswa: hasilUjian.siswa,
+            ujian: hasilUjian.ujian,
+            nilai_multiple: hasilUjian.nilai_multiple,
+            nilai_essay: hasilUjian.nilai_essay,
+            nilai_total: hasilUjian.nilai_total,
+            waktu_selesai: hasilUjian.waktu_selesai,
+          },
+          jawaban_multiple: formattedJawabanMultiple,
+          jawaban_essay: formattedJawabanEssay,
+        },
+      });
+    } catch (error) {
+      console.error("Error mendapatkan detail jawaban:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan server",
+      });
+    }
+  },
 };
 
 module.exports = hasilujianController;
