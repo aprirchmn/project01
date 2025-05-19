@@ -5,30 +5,10 @@ const XLSX = require("xlsx");
 const guruController = {
   getAll: async (req, res) => {
     try {
-      const gurus = await prisma.guru.findMany({
-        include: {
-          user: {
-            include: {
-              userRoles: true,
-            },
-          },
-        },
-      });
-
-      const formattedGurus = gurus.map((guru) => {
-        const { user, ...guruData } = guru;
-
-        return {
-          ...guruData,
-          email: user.email,
-          username: user.username,
-          roles: user.userRoles.map((userRole) => userRole.role),
-        };
-      });
-
+      const gurus = await prisma.guru.findMany();
       res.json({
         status: 200,
-        data: formattedGurus,
+        data: gurus,
       });
     } catch (error) {
       res.status(500).send(error.message);
@@ -54,7 +34,7 @@ const guruController = {
   },
 
   create: async (req, res) => {
-    const { username, password, nama_guru, nip, email, roles } = req.body;
+    const { username, password, nama_guru, nip, id_kelas, email } = req.body;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -64,43 +44,32 @@ const guruController = {
           data: {
             username,
             password: hashedPassword,
-            ...(email && { email }),
-            userRoles: {
-              create: roles.map((role) => ({ role })),
-            },
-          },
-          include: {
-            userRoles: true,
+            role: "GURU",
+            ...(email && { email }), // optional update
           },
         });
 
-        let guru = null;
-        if (roles.includes("GURU")) {
-          guru = await prisma.guru.create({
-            data: {
-              nama_guru,
-              nip,
-              user_id: user.id,
-              username,
-              ...(email && { email }),
-            },
-          });
-        }
+        const guru = await prisma.guru.create({
+          data: {
+            nama_guru,
+            nip,
+            user_id: user.id,
+            username,
+            ...(email && { email }), // optional update
+          },
+        });
 
         return { user, guru };
       });
 
       res.status(201).json({
-        message: "User berhasil ditambahkan",
+        message: "Guru berhasil ditambahkan",
         data: {
-          user_id: result.user.id,
+          id_guru: result.guru.id_guru,
+          nama_guru: result.guru.nama_guru,
+          nip: result.guru.nip,
           username: result.user.username,
-          roles: result.user.userRoles.map((ur) => ur.role),
-          ...(result.guru && {
-            id_guru: result.guru.id_guru,
-            nama_guru: result.guru.nama_guru,
-            nip: result.guru.nip,
-          }),
+          role: result.user.role,
         },
       });
     } catch (error) {
@@ -116,23 +85,16 @@ const guruController = {
 
   update: async (req, res) => {
     const id_guru = req.params.id;
-    const { nama_guru, nip, username, password, email, roles } = req.body;
+    const { nama_guru, nip, username, password, email } = req.body;
 
     try {
       const result = await prisma.$transaction(async (prisma) => {
         const guru = await prisma.guru.findUnique({
           where: { id_guru: parseInt(id_guru) },
-          include: {
-            user: {
-              include: {
-                userRoles: true,
-              },
-            },
-          },
         });
 
         if (!guru) {
-          throw new Error("Guru tidak ditemukan");
+          return res.status(404).json({ message: "Guru tidak ditemukan" });
         }
 
         const updatedGuru = await prisma.guru.update({
@@ -158,35 +120,7 @@ const guruController = {
         const updatedUser = await prisma.user.update({
           where: { id: guru.user_id },
           data: updateUserData,
-          include: {
-            userRoles: true,
-          },
         });
-
-        if (roles && Array.isArray(roles)) {
-          await prisma.userRole.deleteMany({
-            where: { user_id: guru.user_id },
-          });
-
-          await prisma.userRole.createMany({
-            data: roles.map((role) => ({
-              user_id: guru.user_id,
-              role,
-            })),
-          });
-
-          const updatedRoles = await prisma.userRole.findMany({
-            where: { user_id: guru.user_id },
-          });
-
-          return {
-            updatedGuru,
-            updatedUser: {
-              ...updatedUser,
-              userRoles: updatedRoles,
-            },
-          };
-        }
 
         return { updatedGuru, updatedUser };
       });
@@ -198,14 +132,11 @@ const guruController = {
           nama_guru: result.updatedGuru.nama_guru,
           nip: result.updatedGuru.nip,
           username: result.updatedUser.username,
-          roles: result.updatedUser.userRoles.map((ur) => ur.role),
+          role: result.updatedUser.role,
         },
       });
     } catch (error) {
       console.error(error);
-      if (error.message === "Guru tidak ditemukan") {
-        return res.status(404).json({ message: "Guru tidak ditemukan" });
-      }
       if (error.code === "P2002") {
         return res
           .status(400)

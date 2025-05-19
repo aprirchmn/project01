@@ -9,7 +9,6 @@ exports.login = async (req, res) => {
     let user = await prisma.user.findUnique({
       where: { username: identifier },
       include: {
-        userRoles: true,
         guru: true,
         siswa: true,
       },
@@ -67,7 +66,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       {
         id: user.id,
-        role: user.userRoles[0]?.role,
+        role: user.role,
         profileId:
           user.role === "GURU" ? user.guru?.id_guru : user.siswa?.id_siswa,
       },
@@ -80,7 +79,7 @@ exports.login = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: user.userRoles[0]?.role,
+        role: user.role,
         profile: user.role === "GURU" ? user.guru : user.siswa,
       },
     });
@@ -89,7 +88,6 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 exports.logout = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -133,8 +131,8 @@ exports.me = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: req.user.role,
-        profile: req.user.role === "GURU" ? user.guru : user.siswa,
+        role: user.role,
+        profile: user.role === "GURU" ? user.guru : user.siswa,
       },
     });
   } catch (error) {

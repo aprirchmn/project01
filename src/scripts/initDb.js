@@ -4,16 +4,7 @@ const bcrypt = require("bcrypt");
 async function createSuperAdmin() {
   try {
     const existingAdmin = await prisma.user.findFirst({
-      where: {
-        userRoles: {
-          some: {
-            role: "SUPER_ADMIN",
-          },
-        },
-      },
-      include: {
-        userRoles: true,
-      },
+      where: { role: "SUPER_ADMIN" },
     });
 
     if (!existingAdmin) {
@@ -24,12 +15,7 @@ async function createSuperAdmin() {
           username: "admin",
           email: "superadmin123@mail.com",
           password: hashedPassword,
-          userRoles: {
-            create: [{ role: "SUPER_ADMIN" }],
-          },
-        },
-        include: {
-          userRoles: true,
+          role: "SUPER_ADMIN",
         },
       });
 

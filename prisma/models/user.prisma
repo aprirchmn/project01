@@ -5,20 +5,11 @@ model User {
   username   String?  @unique
   password   String
   email      String?  @unique
+  role       Role
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   // Relations
-  userRoles UserRole[]
-  guru      guru?
-  siswa     siswa?
-}
-
-model UserRole {
-  id      Int  @id @default(autoincrement())
-  role    Role
-  user_id Int
-  user    User @relation(fields: [user_id], references: [id])
-
-  @@unique([user_id, role]) // Memastikan user tidak memiliki role duplikat
+  guru  guru?
+  siswa siswa?
 }

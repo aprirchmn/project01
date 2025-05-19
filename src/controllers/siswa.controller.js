@@ -70,13 +70,8 @@ const siswaController = {
             // username,
             ...(username && { username }),
             password: hashedPassword,
+            role: "SISWA",
             ...(email && { email }),
-            userRoles: {
-              create: [{ role: "SISWA" }],
-            },
-          },
-          include: {
-            userRoles: true,
           },
         });
 
@@ -102,7 +97,7 @@ const siswaController = {
           jurusan: result.siswa.jurusan,
           email: result.siswa.email,
           username: result.user.username,
-          role: "SISWA",
+          role: result.user.role,
         },
       });
     } catch (error) {
@@ -127,7 +122,7 @@ const siswaController = {
         });
 
         if (!siswa) {
-          throw new Error("Siswa tidak ditemukan");
+          return res.status(404).json({ message: "Siswa tidak ditemukan" });
         }
 
         const updatedSiswa = await prisma.siswa.update({
@@ -153,35 +148,9 @@ const siswaController = {
         const updatedUser = await prisma.user.update({
           where: { id: siswa.user_id },
           data: updateUserData,
-          include: {
-            userRoles: true,
-          },
         });
 
-        const hasStudentRole = updatedUser.userRoles.some(
-          (ur) => ur.role === "SISWA",
-        );
-
-        if (!hasStudentRole) {
-          await prisma.userRole.create({
-            data: {
-              user_id: siswa.user_id,
-              role: "SISWA",
-            },
-          });
-        }
-
-        const userRoles = await prisma.userRole.findMany({
-          where: { user_id: siswa.user_id },
-        });
-
-        return {
-          updatedSiswa,
-          updatedUser: {
-            ...updatedUser,
-            userRoles: userRoles,
-          },
-        };
+        return { updatedSiswa, updatedUser };
       });
 
       res.status(200).json({
@@ -193,18 +162,15 @@ const siswaController = {
           jurusan: result.updatedSiswa.jurusan,
           email: result.updatedSiswa.email,
           username: result.updatedUser.username,
-          role: "SISWA", // Hardcoded karena siswa hanya boleh memiliki role SISWA
+          role: result.updatedUser.role,
         },
       });
     } catch (error) {
       console.error(error);
-      if (error.message === "Siswa tidak ditemukan") {
-        return res.status(404).json({ message: "Siswa tidak ditemukan" });
-      }
       if (error.code === "P2002") {
-        return res
-          .status(400)
-          .json({ message: "Username, NIS, atau email sudah digunakan" });
+        return res.status(400).json({
+          message: "Username, NIS, atau email sudah digunakan",
+        });
       }
       res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -351,13 +317,7 @@ const siswaController = {
 
       for (const row of data) {
         try {
-          if (
-            !row.username ||
-            !row.nama_siswa ||
-            !row.nis ||
-            !row.password ||
-            !row.jurusan
-          ) {
+          if (!row.nama_siswa || !row.nis || !row.password || !row.jurusan) {
             results.errors.push({
               nis: row.nis || "Unknown",
               error: "Missing required fields",
@@ -370,7 +330,6 @@ const siswaController = {
           const result = await prisma.$transaction(async (prisma) => {
             const user = await prisma.user.create({
               data: {
-                username: row.username,
                 password: hashedPassword,
                 role: "SISWA",
                 ...(row.email && { email: row.email }),
