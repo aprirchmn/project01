@@ -1,4 +1,5 @@
 const prisma = require("../db");
+const ExcelJS = require("exceljs");
 
 const ujianController = {
   getAll: async (req, res) => {
@@ -605,6 +606,80 @@ const ujianController = {
       });
     } catch (error) {
       console.error("Error mendapatkan hasil ujian:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan server",
+      });
+    }
+  },
+
+  exportExamResult: async (req, res) => {
+    try {
+      const { id_ujian } = req.params;
+      const guruId = req.user.id;
+
+      const ujian = await prisma.ujian.findFirst({
+        where: {
+          id_ujian: parseInt(id_ujian),
+          id_guru: guruId,
+        },
+        include: {
+          mata_pelajaran: true,
+        },
+      });
+
+      const hasilUjian = await prisma.hasil_ujian.findMany({
+        where: {
+          id_ujian: parseInt(id_ujian),
+          is_selesai: true,
+        },
+        include: {
+          siswa: true,
+        },
+        orderBy: {
+          nilai_total: "desc",
+        },
+      });
+
+      const createCsvStringifier =
+        require("csv-writer").createObjectCsvStringifier;
+      const csvStringifier = createCsvStringifier({
+        header: [
+          { id: "no", title: "No" },
+          { id: "nis", title: "NIS" },
+          { id: "nama", title: "Nama Siswa" },
+          { id: "jurusan", title: "Jurusan" },
+          { id: "nilai_total", title: "Nilai Total" },
+          { id: "waktu_selesai", title: "Waktu Selesai" },
+        ],
+      });
+
+      const records = hasilUjian.map((hasil, index) => ({
+        no: index + 1,
+        nis: hasil.siswa.nis,
+        nama: hasil.siswa.nama_siswa,
+        jurusan: hasil.siswa.jurusan,
+        nilai_multiple: hasil.nilai_multiple,
+        nilai_essay: hasil.nilai_essay,
+        nilai_total: hasil.nilai_total,
+        waktu_selesai: hasil.waktu_selesai
+          ? new Date(hasil.waktu_selesai).toLocaleString("id-ID")
+          : "-",
+      }));
+
+      const csvHeader = csvStringifier.getHeaderString();
+      const csvRecords = csvStringifier.stringifyRecords(records);
+      const csvContent = csvHeader + csvRecords;
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="Laporan_ujian.csv"`,
+      );
+
+      return res.status(200).send(csvContent);
+    } catch (error) {
+      console.error("Error mengekspor hasil ujian:", error);
       return res.status(500).json({
         success: false,
         message: "Terjadi kesalahan server",

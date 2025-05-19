@@ -22,6 +22,12 @@ router.get(
   isGuruOrAdmin,
   ujianController.examDetailResult,
 );
+router.get(
+  "/:id_ujian/export",
+  authenticateToken,
+  isGuruOrAdmin,
+  ujianController.exportExamResult,
+);
 router.post("/", authenticateToken, isGuruOrAdmin, ujianController.create);
 router.put("/:id", authenticateToken, isGuruOrAdmin, ujianController.update);
 router.delete("/:id", authenticateToken, isGuruOrAdmin, ujianController.delete);
