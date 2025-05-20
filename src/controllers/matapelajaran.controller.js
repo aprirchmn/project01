@@ -80,6 +80,7 @@ const matapelajaranController = {
                 },
               },
             },
+            jurusan: true,
           },
         });
       } else {
@@ -134,6 +135,7 @@ const matapelajaranController = {
               },
             },
           },
+          jurusan: true,
         },
       };
 
@@ -245,7 +247,12 @@ const matapelajaranController = {
 
   create: async (req, res) => {
     try {
-      const newMatapelajaranData = req.body;
+      const {
+        id_guru,
+        deskripsi_mata_pelajaran,
+        id_jurusan,
+        nama_mata_pelajaran,
+      } = req.body;
       const kode_mata_pelajaran = crypto
         .randomBytes(3)
         .toString("hex")
@@ -253,11 +260,11 @@ const matapelajaranController = {
 
       const matapelajaran = await prisma.mata_pelajaran.create({
         data: {
-          id_guru: newMatapelajaranData.id_guru,
-          kode_mata_pelajaran: kode_mata_pelajaran,
-          deskripsi_mata_pelajaran:
-            newMatapelajaranData.deskripsi_mata_pelajaran,
-          nama_mata_pelajaran: newMatapelajaranData.nama_mata_pelajaran,
+          id_guru,
+          kode_mata_pelajaran,
+          ...(deskripsi_mata_pelajaran && { deskripsi_mata_pelajaran }),
+          id_jurusan,
+          nama_mata_pelajaran,
         },
       });
 
@@ -293,6 +300,7 @@ const matapelajaranController = {
           id_guru: matapelajaranData.id_guru,
           nama_mata_pelajaran: matapelajaranData.nama_mata_pelajaran,
           deskripsi_mata_pelajaran: matapelajaranData.deskripsi_mata_pelajaran,
+          id_jurusan: matapelajaranData.id_jurusan,
         },
       });
 

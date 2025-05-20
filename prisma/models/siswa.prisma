@@ -16,7 +16,9 @@ model jurusan {
   id_jurusan   Int     @id @default(autoincrement())
   nama_jurusan String  @unique
   kode_jurusan String? @unique
-  siswa        siswa[]
+
+  siswa          siswa[]
+  mata_pelajaran mata_pelajaran[]
 }
 
 model mata_pelajaran_siswa {

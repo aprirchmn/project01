@@ -4,11 +4,12 @@ const jurusanController = require("../controllers/jurusan.controller");
 const {
   authenticateToken,
   isSuperAdmin,
+  isGuruOrAdmin,
 } = require("../middleware/auth.middleware");
 
-router.get("/", authenticateToken, isSuperAdmin, jurusanController.getAll);
+router.get("/", authenticateToken, isGuruOrAdmin, jurusanController.getAll);
 
-router.get("/:id", authenticateToken, isSuperAdmin, jurusanController.getById);
+router.get("/:id", authenticateToken, isGuruOrAdmin, jurusanController.getById);
 
 router.post("/", authenticateToken, isSuperAdmin, jurusanController.create);
 
