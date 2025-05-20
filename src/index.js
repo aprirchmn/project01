@@ -16,6 +16,7 @@ app.get("/api", (req, res) => {
   res.send("Project Aplikasi CBT berbasis AES");
 });
 
+const jurusanRoutes = require("./routes/jurusan.routes");
 const siswaRoutes = require("./routes/siswa.routes");
 const guruRoutes = require("./routes/guru.routes");
 const jawabanRoutes = require("./routes/jawaban.routes");
@@ -27,6 +28,7 @@ const soalessayRoutes = require("./routes/soalessay.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const authRoutes = require("./routes/auth.routes");
 
+app.use("/jurusan", jurusanRoutes);
 app.use("/siswas", siswaRoutes);
 app.use("/gurus", guruRoutes);
 app.use("/jawabans", jawabanRoutes);

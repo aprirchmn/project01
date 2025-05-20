@@ -2,13 +2,21 @@ model siswa {
   id_siswa             Int                    @id @default(autoincrement())
   nama_siswa           String
   nis                  String                 @unique
-  jurusan              String
+  id_jurusan           Int
   email                String?                @unique
   user_id              Int                    @unique
   user                 User                   @relation(fields: [user_id], references: [id])
+  jurusan              jurusan                @relation(fields: [id_jurusan], references: [id_jurusan])
   mata_pelajaran_siswa mata_pelajaran_siswa[]
   hasil_ujian          hasil_ujian[]
   jawaban              jawaban[]
+}
+
+model jurusan {
+  id_jurusan   Int     @id @default(autoincrement())
+  nama_jurusan String  @unique
+  kode_jurusan String? @unique
+  siswa        siswa[]
 }
 
 model mata_pelajaran_siswa {

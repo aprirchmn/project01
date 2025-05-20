@@ -4,29 +4,42 @@ const XLSX = require("xlsx");
 
 const siswaController = {
   getAll: async (req, res) => {
-    const { jurusan, fase } = req.query;
+    const { fase, jurusan } = req.query;
 
     try {
+      let whereCondition = {};
+
+      if (fase || jurusan) {
+        whereCondition = {
+          jurusan: {
+            kode_jurusan: {
+              contains: "",
+            },
+          },
+        };
+
+        if (fase) {
+          whereCondition.jurusan.kode_jurusan.contains = `FASE ${fase}`;
+        }
+
+        if (jurusan) {
+          if (fase) {
+            whereCondition = {
+              AND: [
+                { jurusan: { kode_jurusan: { contains: `FASE ${fase}` } } },
+                { jurusan: { kode_jurusan: { contains: jurusan } } },
+              ],
+            };
+          } else {
+            whereCondition.jurusan.kode_jurusan.contains = jurusan;
+          }
+        }
+      }
+
       const siswas = await prisma.siswa.findMany({
-        where: {
-          AND: [
-            jurusan
-              ? {
-                  jurusan: {
-                    contains: jurusan,
-                    mode: "insensitive",
-                  },
-                }
-              : {},
-            fase
-              ? {
-                  jurusan: {
-                    startsWith: fase,
-                    mode: "insensitive",
-                  },
-                }
-              : {},
-          ],
+        where: whereCondition,
+        include: {
+          jurusan: true,
         },
       });
 
@@ -59,7 +72,7 @@ const siswaController = {
   },
 
   create: async (req, res) => {
-    const { username, password, nama_siswa, nis, email, jurusan } = req.body;
+    const { username, password, nama_siswa, nis, email, id_jurusan } = req.body;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -67,7 +80,6 @@ const siswaController = {
       const result = await prisma.$transaction(async (prisma) => {
         const user = await prisma.user.create({
           data: {
-            // username,
             ...(username && { username }),
             password: hashedPassword,
             role: "SISWA",
@@ -79,7 +91,7 @@ const siswaController = {
           data: {
             nama_siswa,
             nis,
-            jurusan,
+            id_jurusan,
             ...(email && { email }),
             user_id: user.id,
           },
@@ -94,7 +106,7 @@ const siswaController = {
           id_siswa: result.siswa.id_siswa,
           nama_siswa: result.siswa.nama_siswa,
           nis: result.siswa.nis,
-          jurusan: result.siswa.jurusan,
+          jurusan: result.siswa.id_jurusan,
           email: result.siswa.email,
           username: result.user.username,
           role: result.user.role,
