@@ -8,29 +8,136 @@ function handleBigInt(obj) {
   );
 }
 
+function determineSemester(date) {
+  const month = date.getMonth() + 1;
+
+  if (month >= 1 && month <= 6) {
+    return {
+      semester: "Genap",
+      tahunAjaran: `${date.getFullYear() - 1}/${date.getFullYear()}`,
+    };
+  } else {
+    return {
+      semester: "Ganjil",
+      tahunAjaran: `${date.getFullYear()}/${date.getFullYear() + 1}`,
+    };
+  }
+}
+
 const dashboardController = {
   metrics: async (req, res) => {
     try {
-      const totalGuru = await prisma.guru.count();
-      const totalSiswa = await prisma.siswa.count();
-      const totalMataPelajaran = await prisma.mata_pelajaran.count();
-      const totalUjian = await prisma.ujian.count();
+      const user = req.user;
+      let totalGuru = 0;
+      let totalSiswa = 0;
+      let totalMataPelajaran = 0;
+      let totalUjian = 0;
+      let totalUjianAktif = 0;
+      let totalMataPelajaranPerGuru = [{ avg_subjects_per_teacher: 0 }];
 
-      const totalUjianAktif = await prisma.ujian.count({
-        where: {
-          status_ujian: "PUBLISHED",
-        },
-      });
+      if (user.role === "SUPER_ADMIN") {
+        // Super Admin melihat semua data
+        totalGuru = await prisma.guru.count();
+        totalSiswa = await prisma.siswa.count();
+        totalMataPelajaran = await prisma.mata_pelajaran.count();
+        totalUjian = await prisma.ujian.count();
+        totalUjianAktif = await prisma.ujian.count({
+          where: { status_ujian: "PUBLISHED" },
+        });
+        totalMataPelajaranPerGuru = await prisma.$queryRaw`
+          SELECT AVG(mp_count) as avg_subjects_per_teacher
+          FROM (
+                 SELECT g.id_guru, COUNT(mp.id_mata_pelajaran) as mp_count
+                 FROM guru g
+                        LEFT JOIN mata_pelajaran mp ON g.id_guru = mp.id_guru
+                 GROUP BY g.id_guru
+               ) as subquery
+        `;
+      } else if (user.role === "GURU") {
+        totalGuru = 1;
 
-      const totalMataPelajaranPerGuru = await prisma.$queryRaw`
-      SELECT AVG(mp_count) as avg_subjects_per_teacher
-      FROM (
-        SELECT g.id_guru, COUNT(mp.id_mata_pelajaran) as mp_count
-        FROM guru g
-        LEFT JOIN mata_pelajaran mp ON g.id_guru = mp.id_guru
-        GROUP BY g.id_guru
-      ) as subquery
-    `;
+        totalSiswa = await prisma.siswa.count({
+          where: {
+            mata_pelajaran_siswa: {
+              some: {
+                mata_pelajaran: {
+                  id_guru: user.profileId,
+                },
+              },
+            },
+          },
+        });
+
+        totalMataPelajaran = await prisma.mata_pelajaran.count({
+          where: {
+            id_guru: user.profileId,
+          },
+        });
+
+        totalUjian = await prisma.ujian.count({
+          where: {
+            id_guru: user.profileId,
+          },
+        });
+
+        totalUjianAktif = await prisma.ujian.count({
+          where: {
+            id_guru: user.profileId,
+            status_ujian: "PUBLISHED",
+          },
+        });
+      } else if (user.role === "SISWA") {
+        totalSiswa = 1;
+
+        totalGuru = await prisma.guru.count({
+          where: {
+            mata_pelajaran: {
+              some: {
+                siswa: {
+                  some: {
+                    id_siswa: user.profileId,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        totalMataPelajaran = await prisma.mata_pelajaran.count({
+          where: {
+            siswa: {
+              some: {
+                id_siswa: user.profileId,
+              },
+            },
+          },
+        });
+
+        totalUjian = await prisma.ujian.count({
+          where: {
+            mata_pelajaran: {
+              siswa: {
+                some: {
+                  id_siswa: user.profileId,
+                },
+              },
+            },
+          },
+        });
+
+        totalUjianAktif = await prisma.ujian.count({
+          where: {
+            status_ujian: "PUBLISHED",
+            mata_pelajaran: {
+              siswa: {
+                some: {
+                  id_siswa: user.profileId,
+                },
+              },
+            },
+          },
+        });
+      }
 
       return res.status(200).json({
         totalGuru,
@@ -238,6 +345,249 @@ const dashboardController = {
       return res
         .status(500)
         .json({ message: "Internal Server Error", error: error.message });
+    }
+  },
+
+  getNilaiByMapel: async (req, res) => {
+    try {
+      const idSiswa = req.user.id;
+
+      console.log(req.user);
+
+      const nilaiByMapel = await prisma.$queryRaw`
+        SELECT 
+          mp.id_mata_pelajaran,
+          mp.nama_mata_pelajaran,
+          mp.kode_mata_pelajaran,
+          AVG(hu.nilai_total) as nilai_rata_rata,
+          COUNT(hu.id_hasil_ujian) as jumlah_ujian,
+          MAX(hu.nilai_total) as nilai_tertinggi,
+          MIN(hu.nilai_total) as nilai_terendah
+        FROM 
+          hasil_ujian hu
+        JOIN 
+          ujian u ON hu.id_ujian = u.id_ujian
+        JOIN 
+          mata_pelajaran mp ON u.id_mata_pelajaran = mp.id_mata_pelajaran
+        WHERE 
+          hu.id_siswa = ${idSiswa}
+          AND hu.is_selesai = true
+        GROUP BY 
+          mp.id_mata_pelajaran
+        ORDER BY 
+          nilai_rata_rata DESC
+      `;
+
+      res.json({
+        success: true,
+        data: nilaiByMapel,
+      });
+    } catch (error) {
+      console.error("Error getting nilai by mata pelajaran:", error);
+      res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan saat mengambil data nilai",
+      });
+    }
+  },
+
+  getNilaiBySemester: async (req, res) => {
+    try {
+      const idSiswa = req.user.id_siswa;
+
+      const allResults = await prisma.hasil_ujian.findMany({
+        where: {
+          id_siswa: idSiswa,
+          is_selesai: true,
+        },
+        include: {
+          ujian: {
+            include: {
+              mata_pelajaran: true,
+            },
+          },
+        },
+      });
+
+      const semesterData = {};
+
+      allResults.forEach((result) => {
+        const { semester, tahunAjaran } = determineSemester(
+          result.ujian.tanggal_ujian,
+        );
+        const semesterKey = `${tahunAjaran} ${semester}`;
+
+        if (!semesterData[semesterKey]) {
+          semesterData[semesterKey] = {
+            tahunAjaran,
+            semester,
+            nilai: [],
+            mapel: new Set(),
+          };
+        }
+
+        semesterData[semesterKey].nilai.push(result.nilai_total);
+        semesterData[semesterKey].mapel.add(
+          result.ujian.mata_pelajaran.nama_mata_pelajaran,
+        );
+      });
+
+      const result = Object.keys(semesterData)
+        .map((key) => {
+          const data = semesterData[key];
+          const nilai = data.nilai;
+
+          return {
+            periode: key,
+            tahunAjaran: data.tahunAjaran,
+            semester: data.semester,
+            jumlahMapel: data.mapel.size,
+            jumlahUjian: nilai.length,
+            nilaiRataRata:
+              nilai.length > 0
+                ? nilai.reduce((a, b) => a + b, 0) / nilai.length
+                : 0,
+            nilaiTertinggi: nilai.length > 0 ? Math.max(...nilai) : 0,
+            nilaiTerendah: nilai.length > 0 ? Math.min(...nilai) : 0,
+          };
+        })
+        .sort((a, b) => {
+          const [tahunA] = a.tahunAjaran.split("/").map(Number);
+          const [tahunB] = b.tahunAjaran.split("/").map(Number);
+
+          if (tahunA !== tahunB) return tahunB - tahunA;
+
+          return a.semester === "Ganjil" ? -1 : 1;
+        });
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      console.error("Error getting nilai by semester:", error);
+      res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan saat mengambil data nilai",
+      });
+    }
+  },
+
+  getStatistikMapel: async (req, res) => {
+    try {
+      const idSiswa = req.user.id;
+      const idMapel = parseInt(req.params.idMapel);
+
+      const ujianResults = await prisma.hasil_ujian.findMany({
+        where: {
+          id_siswa: idSiswa,
+          is_selesai: true,
+          ujian: {
+            id_mata_pelajaran: idMapel,
+          },
+        },
+        include: {
+          ujian: {
+            include: {
+              mata_pelajaran: true,
+            },
+          },
+        },
+        orderBy: {
+          ujian: {
+            tanggal_ujian: "asc",
+          },
+        },
+      });
+
+      const mataPelajaran = await prisma.mata_pelajaran.findUnique({
+        where: {
+          id_mata_pelajaran: idMapel,
+        },
+        include: {
+          guru: true,
+        },
+      });
+
+      const detailUjian = ujianResults.map((result) => ({
+        id_hasil_ujian: result.id_hasil_ujian,
+        id_ujian: result.id_ujian,
+        nama_ujian: result.ujian.nama_ujian,
+        tanggal_ujian: result.ujian.tanggal_ujian,
+        nilai_total: result.nilai_total,
+        nilai_multiple: result.nilai_multiple,
+        nilai_essay: result.nilai_essay,
+      }));
+
+      const statistik = {
+        jumlah_ujian: detailUjian.length,
+        nilai_rata_rata:
+          detailUjian.length > 0
+            ? detailUjian.reduce((sum, item) => sum + item.nilai_total, 0) /
+              detailUjian.length
+            : 0,
+        nilai_tertinggi:
+          detailUjian.length > 0
+            ? Math.max(...detailUjian.map((item) => item.nilai_total))
+            : 0,
+        nilai_terendah:
+          detailUjian.length > 0
+            ? Math.min(...detailUjian.map((item) => item.nilai_total))
+            : 0,
+      };
+
+      res.json({
+        success: true,
+        data: {
+          mata_pelajaran: mataPelajaran,
+          statistik,
+          detail_ujian: detailUjian,
+        },
+      });
+    } catch (error) {
+      console.error("Error getting statistik mapel:", error);
+      res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan saat mengambil statistik mata pelajaran",
+      });
+    }
+  },
+
+  getMataPelajaranSiswa: async (req, res) => {
+    try {
+      const idSiswa = req.user.id_siswa;
+
+      const mataPelajaran = await prisma.mata_pelajaran_siswa.findMany({
+        where: {
+          id_siswa: idSiswa,
+        },
+        include: {
+          mata_pelajaran: {
+            include: {
+              guru: true,
+            },
+          },
+        },
+      });
+
+      const formattedData = mataPelajaran.map((mp) => ({
+        id_mata_pelajaran: mp.mata_pelajaran.id_mata_pelajaran,
+        nama_mata_pelajaran: mp.mata_pelajaran.nama_mata_pelajaran,
+        kode_mata_pelajaran: mp.mata_pelajaran.kode_mata_pelajaran,
+        deskripsi_mata_pelajaran: mp.mata_pelajaran.deskripsi_mata_pelajaran,
+        nama_guru: mp.mata_pelajaran.guru.nama_guru,
+      }));
+
+      res.json({
+        success: true,
+        data: formattedData,
+      });
+    } catch (error) {
+      console.error("Error getting mata pelajaran siswa:", error);
+      res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan saat mengambil data mata pelajaran",
+      });
     }
   },
 };

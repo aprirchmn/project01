@@ -10,8 +10,7 @@ model mata_pelajaran {
   id_jurusan               Int
   jurusan                  jurusan @relation(fields: [id_jurusan], references: [id_jurusan])
 
-  siswa         mata_pelaja
-  ran_siswa[]
+  siswa         mata_pelajaran_siswa[]
   ujian         ujian[]
   soal_essay    soal_essay[]
   soal_multiple soal_multiple[]
