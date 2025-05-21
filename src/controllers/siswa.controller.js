@@ -327,12 +327,37 @@ const siswaController = {
         errors: [],
       };
 
+      const jurusanList = await prisma.jurusan.findMany();
+      const jurusanKodeMap = {};
+
+      jurusanList.forEach((j) => {
+        if (j.kode_jurusan) {
+          jurusanKodeMap[j.kode_jurusan.toLowerCase()] = j.id_jurusan;
+        }
+      });
+
       for (const row of data) {
         try {
-          if (!row.nama_siswa || !row.nis || !row.password || !row.jurusan) {
+          if (
+            !row.nama_siswa ||
+            !row.nis ||
+            !row.password ||
+            !row.kode_jurusan
+          ) {
             results.errors.push({
               nis: row.nis || "Unknown",
               error: "Missing required fields",
+            });
+            continue;
+          }
+
+          const kodeJurusan = row.kode_jurusan.toString().toLowerCase();
+          const id_jurusan = jurusanKodeMap[kodeJurusan];
+
+          if (!id_jurusan) {
+            results.errors.push({
+              nis: row.nis || "Unknown",
+              error: `Kode jurusan "${row.kode_jurusan}" tidak ditemukan`,
             });
             continue;
           }
@@ -352,7 +377,7 @@ const siswaController = {
               data: {
                 nama_siswa: row.nama_siswa,
                 nis: row.nis.toString(),
-                jurusan: row.jurusan,
+                id_jurusan: id_jurusan,
                 ...(row.email && { email: row.email }),
                 user_id: user.id,
               },
@@ -361,10 +386,20 @@ const siswaController = {
             return { user, siswa };
           });
 
+          const jurusanData = jurusanList.find(
+            (j) => j.id_jurusan === id_jurusan,
+          );
+
           results.success.push({
             id_siswa: result.siswa.id_siswa,
             nama_siswa: result.siswa.nama_siswa,
             nis: result.siswa.nis,
+            id_jurusan: result.siswa.id_jurusan,
+            nama_jurusan: jurusanData?.nama_jurusan,
+            kode_jurusan: jurusanData?.kode_jurusan,
+            email: result.siswa.email,
+            username: result.user.username,
+            role: result.user.role,
           });
         } catch (error) {
           console.error(`Error importing row with NIS ${row.nis}:`, error);
