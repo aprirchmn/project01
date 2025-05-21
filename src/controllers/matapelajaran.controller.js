@@ -338,6 +338,76 @@ const matapelajaranController = {
       res.status(400).send(error.message);
     }
   },
+
+  deleteStudentFromSubject: async (req, res) => {
+    try {
+      const mataPelajaranId = parseInt(req.params.id);
+      const siswaId = parseInt(req.params.siswaId);
+
+      const mataPelajaran = await prisma.mata_pelajaran.findUnique({
+        where: {
+          id_mata_pelajaran: mataPelajaranId,
+        },
+      });
+
+      if (!mataPelajaran) {
+        return res.status(404).json({
+          message: "Mata Pelajaran tidak ditemukan",
+        });
+      }
+
+      const siswa = await prisma.siswa.findUnique({
+        where: {
+          id_siswa: siswaId,
+        },
+      });
+
+      if (!siswa) {
+        return res.status(404).json({
+          message: "Siswa tidak ditemukan",
+        });
+      }
+
+      const relasi = await prisma.mata_pelajaran_siswa.findUnique({
+        where: {
+          id_mata_pelajaran_id_siswa: {
+            id_mata_pelajaran: mataPelajaranId,
+            id_siswa: siswaId,
+          },
+        },
+      });
+
+      if (!relasi) {
+        return res.status(404).json({
+          message: "Siswa tidak terdaftar dalam mata pelajaran ini",
+        });
+      }
+
+      await prisma.mata_pelajaran_siswa.delete({
+        where: {
+          id_mata_pelajaran_id_siswa: {
+            id_mata_pelajaran: mataPelajaranId,
+            id_siswa: siswaId,
+          },
+        },
+      });
+
+      return res.status(200).json({
+        status: 200,
+        message: "Siswa berhasil dihapus dari mata pelajaran",
+        data: {
+          id_mata_pelajaran: mataPelajaranId,
+          id_siswa: siswaId,
+        },
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({
+        message: "Terjadi kesalahan saat menghapus siswa dari mata pelajaran",
+        error: error.message,
+      });
+    }
+  },
 };
 
 module.exports = matapelajaranController;

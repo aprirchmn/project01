@@ -27,5 +27,10 @@ router.delete(
   isGuruOrAdmin,
   matapelajaranController.delete,
 );
-
+router.delete(
+  "/:id/siswa/:siswaId",
+  authenticateToken,
+  isGuruOrAdmin,
+  matapelajaranController.deleteStudentFromSubject,
+);
 module.exports = router;
