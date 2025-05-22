@@ -143,12 +143,8 @@ const jawabanController = {
         const cleanedJawabanMurid = processText(newJawabanData.jawaban_murid);
         const cleanedKunciJawaban = processText(soalEssay.kunci_jawaban);
         cosine = parseFloat(calculateCosineSimilarity(cleanedJawabanMurid, cleanedKunciJawaban).toFixed(2));
-        if (cosine >= 0.5) {
-          skor = cosine * soalEssay.bobot;
-          message = "Jawaban Benar";
-        } else {
-          message = "Jawaban Salah";
-        }
+        skor = cosine * soalEssay.bobot; // Hitung skor berapapun nilai cosine-nya
+        message = cosine >= 0.5 ? "Jawaban Benar" : "Jawaban Salah";
       }
 
       const jawabanData = {
@@ -159,6 +155,7 @@ const jawabanController = {
         skor,
         id_soal_essay: newJawabanData.id_soal_essay || null,
         id_soal_multiple: newJawabanData.id_soal_multiple || null,
+        id_mata_pelajaran: newJawabanData.id_mata_pelajaran,
       };
       if (cosine !== null) {
         jawabanData.cosine = cosine;
@@ -199,8 +196,7 @@ const jawabanController = {
 
       const isValidSoal = jawabanData.id_soal_multiple !== undefined || jawabanData.id_soal_essay !== undefined;
 
-      const isValidData = jawabanData.id_hasil_ujian && jawabanData.id_ujian && jawabanData.id_siswa &&
-          jawabanData.jawaban_murid && jawabanData.skor !== undefined;
+      const isValidData = jawabanData.id_hasil_ujian && jawabanData.id_ujian && jawabanData.id_siswa && jawabanData.jawaban_murid && jawabanData.skor !== undefined;
 
       if (!isValidSoal || !isValidData) {
         return res.status(400).send("Tidak boleh ada data yang kosong");
