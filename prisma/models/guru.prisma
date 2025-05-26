@@ -1,0 +1,11 @@
+model guru {
+  id_guru        Int              @id @default(autoincrement())
+  nama_guru      String
+  nip            String           @unique
+  email          String?          @unique
+  username       String
+  user_id        Int              @unique
+  user           User             @relation(fields: [user_id], references: [id])
+  mata_pelajaran mata_pelajaran[]
+  ujian          ujian[]
+}

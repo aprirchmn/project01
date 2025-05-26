@@ -1,0 +1,17 @@
+// Mata Pelajaran (subject) model and relations
+
+model mata_pelajaran {
+  id_mata_pelajaran        Int     @id @default(autoincrement())
+  nama_mata_pelajaran      String
+  kode_mata_pelajaran      String  @unique
+  deskripsi_mata_pelajaran String?
+  id_guru                  Int
+  guru                     guru    @relation(fields: [id_guru], references: [id_guru])
+  id_jurusan               Int
+  jurusan                  jurusan @relation(fields: [id_jurusan], references: [id_jurusan])
+
+  siswa         mata_pelajaran_siswa[]
+  ujian         ujian[]
+  soal_essay    soal_essay[]
+  soal_multiple soal_multiple[]
+}

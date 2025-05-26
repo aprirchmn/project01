@@ -1,17 +1,34 @@
 const express = require("express");
 const siswaController = require("../controllers/siswa.controller");
-const { verifyToken, guruOnly } = require("../middleware/auth.middleware");
-const upload = require("../middleware/upload.middleware");
-// const { guru } = require("../db");
+const {
+  authenticateToken,
+  isGuruOrAdmin,
+  isSiswaOrAdmin,
+  isSuperAdmin,
+} = require("../middleware/auth.middleware");
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const router = express.Router();
 
-router.get("/", verifyToken, siswaController.getAll);
-router.get("/:id", verifyToken, siswaController.getById);
-router.post("/", verifyToken, guruOnly, siswaController.create);
-router.put("/:id", verifyToken, guruOnly, siswaController.update);
-router.patch("/:id", verifyToken, guruOnly, siswaController.patch);
-router.delete("/:id", verifyToken, guruOnly, siswaController.delete);
-router.post("/import", verifyToken, guruOnly, upload.single("file"), siswaController.importExcel);
+router.get("/", authenticateToken, siswaController.getAll);
+router.get("/:id", authenticateToken, siswaController.getById);
+router.post("/", authenticateToken, isGuruOrAdmin, siswaController.create);
+router.put("/:id", authenticateToken, isGuruOrAdmin, siswaController.update);
+router.post(
+  "/:id_siswa/join",
+  authenticateToken,
+  isSiswaOrAdmin,
+  siswaController.join,
+);
+router.delete("/:id", authenticateToken, isGuruOrAdmin, siswaController.delete);
+router.post(
+  "/import",
+  upload.single("file"),
+  authenticateToken,
+  isSuperAdmin,
+  siswaController.importFromExcel,
+);
 
 module.exports = router;

@@ -1,14 +1,36 @@
 const express = require("express");
 const matapelajaranController = require("../controllers/matapelajaran.controller");
-const { verifyToken, guruOnly } = require("../middleware/auth.middleware");
+const {
+  authenticateToken,
+  isGuruOrAdmin,
+} = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-router.get("/", verifyToken, matapelajaranController.getAll);
-router.get("/:id", verifyToken, matapelajaranController.getById);
-router.post("/", verifyToken, guruOnly, matapelajaranController.create);
-router.put("/:id", verifyToken, guruOnly, matapelajaranController.update);
-router.delete("/:id", verifyToken, guruOnly, matapelajaranController.delete);
-router.patch("/:id", verifyToken, guruOnly, matapelajaranController.patch);
-
+router.get("/", authenticateToken, matapelajaranController.getAll);
+router.get("/:id", authenticateToken, matapelajaranController.getById);
+router.post(
+  "/",
+  authenticateToken,
+  isGuruOrAdmin,
+  matapelajaranController.create,
+);
+router.put(
+  "/:id",
+  authenticateToken,
+  isGuruOrAdmin,
+  matapelajaranController.update,
+);
+router.delete(
+  "/:id",
+  authenticateToken,
+  isGuruOrAdmin,
+  matapelajaranController.delete,
+);
+router.delete(
+  "/:id/siswa/:siswaId",
+  authenticateToken,
+  isGuruOrAdmin,
+  matapelajaranController.deleteStudentFromSubject,
+);
 module.exports = router;

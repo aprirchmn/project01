@@ -1,0 +1,56 @@
+model ujian {
+  id_ujian          Int         @id @default(autoincrement())
+  id_mata_pelajaran Int
+  id_guru           Int
+  tanggal_ujian     DateTime
+  durasi_ujian      String
+  deskripsi_ujian   String
+  status_ujian      StatusUjian
+  nama_ujian        String
+  tipe_ujian        TipeUjian
+  acak_soal         Boolean     @default(false)
+  tampilkan_jawaban Boolean     @default(false)
+
+  // Relations
+  mata_pelajaran mata_pelajaran  @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
+  guru           guru            @relation(fields: [id_guru], references: [id_guru])
+  soal_essay     soal_essay[]
+  soal_multiple  soal_multiple[]
+  hasil_ujian    hasil_ujian[]
+  jawaban        jawaban[]
+}
+
+model soal_essay {
+  id_soal_essay     Int     @id @default(autoincrement())
+  id_mata_pelajaran Int
+  id_ujian          Int?
+  pertanyaan        String
+  gambar_soal       String?
+  kunci_jawaban     String
+  bobot             Float
+
+  // Relations
+  mata_pelajaran mata_pelajaran @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
+  ujian          ujian?         @relation(fields: [id_ujian], references: [id_ujian])
+  jawaban        jawaban[]
+}
+
+model soal_multiple {
+  id_soal_multiple  Int     @id @default(autoincrement())
+  id_mata_pelajaran Int
+  id_ujian          Int?
+  pertanyaan        String
+  gambar_soal       String?
+  pilihan_a         String
+  pilihan_b         String
+  pilihan_c         String
+  pilihan_d         String
+  pilihan_e         String
+  kunci_jawaban     String
+  bobot             Float
+
+  // Relations
+  mata_pelajaran mata_pelajaran @relation(fields: [id_mata_pelajaran], references: [id_mata_pelajaran])
+  ujian          ujian?         @relation(fields: [id_ujian], references: [id_ujian])
+  jawaban        jawaban[]
+}
