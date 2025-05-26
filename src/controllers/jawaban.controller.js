@@ -143,7 +143,7 @@ const jawabanController = {
         const cleanedJawabanMurid = processText(newJawabanData.jawaban_murid);
         const cleanedKunciJawaban = processText(soalEssay.kunci_jawaban);
         cosine = parseFloat(calculateCosineSimilarity(cleanedJawabanMurid, cleanedKunciJawaban).toFixed(2));
-        skor = cosine * soalEssay.bobot; // Hitung skor berapapun nilai cosine-nya
+        skor = cosine * soalEssay.bobot;
         message = cosine >= 0.5 ? "Jawaban Benar" : "Jawaban Salah";
       }
 
